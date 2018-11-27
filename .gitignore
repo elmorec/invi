@@ -1,0 +1,8 @@
+node_modules/
+coverage/
+example/
+dist/
+tmp/
+src/themes/
+package-lock.json
+.DS_Store
