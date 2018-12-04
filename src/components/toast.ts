@@ -1,65 +1,121 @@
-import { type, animationEnd, toggleClass, mergeDefault, bindOnce } from '../utils';
+import { animationEnd, bindOnce, mergeDefault, type } from '../utils';
 
-export interface ToastStyle {
+interface ToastStyle {
+  /**
+   * Class name of container element
+   */
   host: string;
+  /**
+   * Class name applied to container when it is attached to DOM
+   */
   enter: string;
+  /**
+   * Class name applied to container when it is detached from DOM
+   */
   leave: string;
+  /**
+   * Class name of the backdrop element
+   */
   backdrop: string;
-}
+};
 
-export interface ToastConfig {
+interface ToastConfig {
   /**
-   * toast message
+   * Toast content
    */
-  content: string;
+  content?: string;
   /**
-   * apply animation
+   * Apply animation, require `classes.enter` and `classes.leave`
    */
-  animation: boolean;
+  animation?: boolean;
   /**
-   * toast last time
+   * Toast duration
    */
-  duration: number;
+  duration?: number;
   /**
-   * modal mode
+   * Create a backdrop, aka modal mode
    */
-  backdrop: boolean;
+  backdrop?: boolean;
   /**
-   * set to `true` to use `innerHTML` instead of `innerText`
+   * Uses `innerHTML` to apply content instead of `innerText`
    */
-  unsafe: boolean;
+  unsafe?: boolean;
   /**
-   * display at the center of the window
-   */
-  center: boolean;
-  /**
-   * mount element
+   * Mount element
    */
   host?: HTMLElement;
   /**
-   * class name
+   * Class names
    */
   classes?: ToastStyle;
 };
+
+interface Toast {
+  /**
+   * Modify the default configuration
+   */
+  config(config: ToastConfig): void;
+
+  /**
+   * Create a toast and display it
+   */
+  (arg: ToastConfig | string): Promise<void>;
+}
+
 let defaults: ToastConfig = {
   content: '',
   animation: true,
   duration: 1000,
   backdrop: false,
   unsafe: false,
-  center: false,
   host: document.body
 };
 
-(toast as any).config = config;
-
-function toast(config: ToastConfig): Promise<void> {
+/**
+ * Toast
+ *
+ * ### Example
+ *
+ * Modify default configuration
+ *
+ * ```javascript
+ * toast.config({
+ *   classes: {
+ *     host: 'toast',
+ *     enter: 'toast-enter',
+ *     leave: 'toast-leave',
+ *     backdrop: 'toast-backdrop'
+ *   },
+ * });
+ * ```
+ *
+ * Display a toast
+ *
+ * ```javascript
+ * toast('content').then(() => {});
+ * ```
+ *
+ * Custom configuration
+ *
+ * ```javascript
+ * toast({
+ *   content: 'content';
+ *   animation: true; // by default
+ *   duration: 1000; // by default
+ *   backdrop: false; // by default
+ *   unsafe: false; // by default
+ *   center: false; // by default
+ *   host: document.body; // by default
+ * });
+ * ```
+ */
+const toast = <Toast>function (config: ToastConfig) {
   return apply(mergeDefault(defaults, type(config) === 'object' ? config : { content: String(config) }));
-}
+};
 
-function config(config: ToastConfig) {
+toast.config = function config(config: ToastConfig) {
   defaults = mergeDefault(defaults, config) as ToastConfig;
-}
+};
 
 function apply(config: ToastConfig): Promise<void> {
   // Both `classes.leave` and `classes.enter` are required for animation
@@ -78,10 +134,6 @@ function apply(config: ToastConfig): Promise<void> {
 
     config.host.appendChild(element);
 
-    if (config.center) {
-      element.setAttribute('style', `left:${Math.round((config.host.offsetWidth - element.offsetWidth) / 2)}px;top:${Math.round((window.innerHeight - element.offsetHeight) / 2)}px`);
-    }
-
     if (config.animation) {
       // enter animation
       bindOnce(element, animationEnd, () => {
@@ -92,7 +144,7 @@ function apply(config: ToastConfig): Promise<void> {
           destroy();
         })
 
-        setTimeout(() => toggleClass(element, classes.leave, false), config.duration);
+        setTimeout(() => element.classList.add(classes.leave), config.duration);
       })
       element.classList.add(classes.enter);
     }
@@ -108,4 +160,4 @@ function apply(config: ToastConfig): Promise<void> {
   })
 }
 
-export { toast }
+export { toast };

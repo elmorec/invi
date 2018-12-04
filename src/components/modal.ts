@@ -1,32 +1,104 @@
-import { EventEmitter } from 'eventemitter3';
-import { delegate, mergeDefault, animationEnd, bindOnce } from '../utils';
+import { animationEnd, bindOnce, delegate, EventEmitter, mergeDefault } from '../utils';
 
-export interface ModalStyle {
+interface ModalAction {
+  /**
+   * Type of the action(anchor) button
+   */
+  type?: 'close' | 'cancel' | 'confirm';
+  /**
+   * Text content of the action(anchor) button
+   */
+  label: string;
+  /**
+   * Class name of the action(anchor) button
+   */
+  class?: string;
+  /**
+   * `href` attribute
+   */
+  redirect?: string;
+  /**
+   * `target` attribute
+   */
+  target?: string;
+  /**
+   * callback function
+   */
+  callback?: Function;
+}
+
+/**
+ * Modal classes
+ *
+ * ```html
+ * <div class="host">
+ *   <div class="body">
+ *   </div>
+ *   <div class="backdrop"></div>
+ * </div>
+ * ```
+ */
+interface ModalStyle {
   host: string;
   body: string;
   enter: string;
   leave: string;
   backdrop: string;
-};
+}
 
-interface Action {
-  type?: 'close' | 'cancel' | 'confirm';
-  label: string;
-  class?: string;
-  redirect?: string;
-  target?: string;
-  callback?: Function;
-}
-export interface ModalConfig {
+interface ModalConfig {
+  /**
+   * Mount element
+   */
   host?: HTMLElement;
+  /**
+   * Modal title
+   */
   title?: string;
+  /**
+   * Modal content
+   */
   content: string;
+  /**
+   * Apply animation, require `classes.enter` and `classes.leave`
+   */
   animation?: boolean;
+  /**
+   * Close modal when clicking on backdrop
+   */
   autoclose?: boolean;
+  /**
+   * Class names
+   */
   classes?: ModalStyle;
+  /**
+   * Event type
+   */
   event: string;
-  actions: Action[];
+  /**
+   * Action button(anchor) list
+   */
+  actions: ModalAction[];
 }
+
+/**
+ * References of the modal elements
+ *
+ * ```html
+ * <body>
+ *   <header></header>
+ *   <content></content>
+ *   <footer></footer>
+ * </body>
+ * ```
+ */
+interface ModalElements {
+  body?: Element;
+  header?: Element;
+  content?: Element;
+  footer?: Element;
+}
+
 enum STATE {
   'OPENED',
   'CLOSED',
@@ -40,54 +112,70 @@ const Events = {
   confirm: 'confirm',
 }
 let defaults: ModalConfig = {
+  host: document.body,
   title: '',
   content: '',
   animation: true,
-  host: document.body,
   event: 'click',
   autoclose: true,
   actions: []
 }
 
 /**
+ * Modal
  *
+ * ### Example
  *
- * @export
- * @class Modal
- * @extends {EventEmitter}
- * @example
+ * ```javascript
  * const modal = new Modal({
- *   title: 'Sample title',
- *   content: 'sample content',
+ *   host: document.body, // by default
+ *   title: 'title',
+ *   content:
+ *     `<p>click <a data-type="close">here</a> to close.</p>
+ *      <p>click <a data-type="cancel">here</a> to cancel.</p>
+ *      <p>click <a data-type="confirm">here</a> to confirm.</p>`,
+ *   animation: true, // by default
+ *   event: 'click', // by default
+ *   autoclose: true. // by default
  *   actions: [
  *     { type: 'close', label: 'close' },
  *     { type: 'cancel', label: 'cancel' },
  *     { type: 'confirm', label: 'ok' },
- *     { label: 'search it', redirect: 'https://www.google.com', target: '_blank' },
+ *     {
+ *       label: 'search it',
+ *       redirect: 'https://www.google.com/search?q=',
+ *       target: '_blank',
+ *     },
  *     {
  *       label: 'noop', callback: function (event) {
  *         this.close()
  *       }
- *     }
- *   ]
+ *     },
+ *   ],
  * });
+ *
+ * modal.open().then(() => {});
+ * modal.close().then(() => {});
  *
  * modal.on('open', () => {});
  * modal.on('close', () => {});
- * modal.on('confirm', () => {});
  * modal.on('cancel', () => {});
+ * modal.on('confirm', () => {});
+ * ```
  */
 export class Modal extends EventEmitter {
   private state: STATE;
   private host: Element;
   private config: ModalConfig;
 
-  el: { body?: Element; header?: Element; content?: Element; footer?: Element } = {};
+  el: ModalElements = {};
 
+  /**
+   * Modify the default configuration
+   */
   static config(config: ModalConfig, pure?: boolean): ModalConfig {
     const ret = mergeDefault(defaults, config);
 
-    // Both `classes.leave` and `classes.enter` are required for animation
     if (!ret.classes || !ret.classes.enter || !ret.classes.leave && ret.animation) {
       ret.animation = false;
     }
@@ -97,10 +185,9 @@ export class Modal extends EventEmitter {
   }
 
   /**
-   * Creates an instance of Modal.
+   * Cconstructor
    *
-   * @param {ModalConfig} config
-   * @memberof Modal
+   * @param config - ModalConfig
    */
   constructor(config: ModalConfig) {
     super();
@@ -130,90 +217,118 @@ export class Modal extends EventEmitter {
   }
 
   private render() {
-    const classes = this.config.classes || {} as ModalStyle,
+    const config = this.config,
+      classes = config.classes || {} as ModalStyle,
       container = document.createElement('div'),
       backdrop = document.createElement('div'),
       body = document.createElement('div'),
-      content = document.createElement('article'),
-      footer = document.createElement('footer');
+      content = document.createElement('article');
+    let footer;
 
     classes.host && (container.className = classes.host);
     classes.backdrop && (backdrop.className = classes.backdrop);
     classes.body && (body.className = classes.body);
 
-    if (this.config.title) {
+    if (config.title) {
       const header = document.createElement('header');
-      header.innerHTML = this.config.title;
+      header.innerHTML = config.title;
       body.appendChild(header);
       this.el.header = header;
     }
-    if (this.config.autoclose) backdrop.dataset.action = Events.close;
+    if (config.autoclose) backdrop.dataset.action = Events.close;
 
-    content.innerHTML = this.config.content;
+    content.innerHTML = config.content;
 
-    this.config.actions.forEach(action => {
-      const a = document.createElement('a');
-      a.innerHTML = action.label;
-      if (action.class) a.className = action.class;
-      if (action.type) a.dataset.action = action.type;
-      if (action.redirect) a.href = action.redirect;
-      if (action.target) a.target = action.target;
-      if (action.callback) a.addEventListener(this.config.event, action.callback.bind(this));
+    if (config.actions && config.actions.length) {
+      footer = document.createElement('footer');
+      config.actions.forEach(action => {
+        const a = document.createElement('a');
+        a.innerHTML = action.label;
+        if (action.class) a.className = action.class;
+        if (action.type) a.dataset.action = action.type;
+        if (action.redirect) a.href = action.redirect;
+        if (action.target) a.target = action.target;
+        if (action.callback) a.addEventListener(config.event, action.callback.bind(this));
 
-      footer.appendChild(a);
-    });
+        footer.appendChild(a);
+      });
+    }
 
     body.appendChild(content);
-    body.appendChild(footer);
+    if (footer) {
+      body.appendChild(footer);
+      this.el.footer = footer;
+    }
     container.appendChild(backdrop);
     container.appendChild(body);
     this.host = container;
-
     this.el.body = body;
     this.el.content = content;
-    this.el.footer = footer;
   }
 
-  open() {
-    if (this.state === STATE.OPENING || this.state === STATE.OPENED) return;
+  /**
+   * Open modal
+   *
+   * @returns promise
+   */
+  open(): Promise<void> {
+    if (this.state === STATE.OPENING || this.state === STATE.OPENED)
+      return Promise.reject();
+
     if (!this.config.animation) {
       this.config.host.appendChild(this.host);
       this.state = STATE.OPENED;
       this.emit(Events.open);
-      return;
+      return Promise.resolve();
     }
 
-    this.host.classList.add(this.config.classes.enter);
-    bindOnce(this.host, animationEnd, () => {
-      this.host.classList.remove(this.config.classes.enter);
-      this.state = STATE.OPENED;
-      this.emit(Events.open);
+    return new Promise(resolve => {
+      this.host.classList.add(this.config.classes.enter);
+      bindOnce(this.host, animationEnd, () => {
+        this.host.classList.remove(this.config.classes.enter);
+        this.state = STATE.OPENED;
+        this.emit(Events.open);
+        resolve();
+      });
+      this.state = STATE.OPENING;
+      this.config.host.appendChild(this.host);
     });
-    this.state = STATE.OPENING;
-    this.config.host.appendChild(this.host);
   }
 
-  close() {
-    if (this.state === STATE.CLOSING || this.state === STATE.CLOSED) return;
+  /**
+   * Close modal
+   *
+   * @returns promise
+   */
+  close(): Promise<void> {
+    if (this.state === STATE.CLOSING || this.state === STATE.CLOSED)
+      return Promise.reject();
+
     if (!this.config.animation) {
       this.config.host.removeChild(this.host);
       this.state = STATE.CLOSED;
       this.emit(Events.close);
-      return;
+      return Promise.resolve();
     }
 
-    bindOnce(this.host, animationEnd, () => {
-      this.config.host.removeChild(this.host);
-      this.host.classList.remove(this.config.classes.leave);
-      this.state = STATE.CLOSED;
-      this.emit(Events.close);
-    });
+    return new Promise(resolve => {
+      bindOnce(this.host, animationEnd, () => {
+        this.config.host.removeChild(this.host);
+        this.host.classList.remove(this.config.classes.leave);
+        this.state = STATE.CLOSED;
+        this.emit(Events.close);
+        resolve();
+      });
 
-    this.state = STATE.CLOSING;
-    this.host.classList.add(this.config.classes.leave);
+      this.state = STATE.CLOSING;
+      this.host.classList.add(this.config.classes.leave);
+    });
   }
 
-  destroy() {
+  /**
+   * Destroy instance, remove all listeners
+   */
+  destroy(): void {
     this.removeAllListeners();
     this.host = this.el = this.config = null;
   }

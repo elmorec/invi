@@ -1,28 +1,44 @@
-import { EventEmitter } from 'eventemitter3';
-import { bindOnce, delegate, mergeDefault, transitionEnd } from '../utils';
+import { bindOnce, delegate, EventEmitter, mergeDefault, transitionEnd } from '../utils';
 
-export interface CollapseStyle {
+interface CollapseStyle {
+  /**
+   * Class name which applied to the actived element
+   */
   active: string;
-}
+};
 
-export interface CollapseConfig {
+interface CollapseConfig {
+  /**
+   * CSS selectors for quering title and content element
+   */
   selectors?: {
     title?: string;
     content?: string;
   };
+  /**
+   * Class names
+   */
   classes?: CollapseStyle;
+  /**
+   * Event type
+   */
   event?: string;
+  /**
+   * Accordion mode
+   */
   accordion?: boolean;
   /**
-   * apply height changes to DOM, useful for animation
+   * Apply height change to DOM for animation propose
    */
   useHeight?: boolean,
   /**
-   *  indexs of items which need to be expanded after initialization
+   *  Indexs of items which need to be expanded after initialization
    */
   indexes?: number[];
-}
-interface CollapseElement { title: HTMLElement; content: HTMLElement; contentHeight?: number; active?: boolean; }
+};
+
+interface CollapseElement { title: HTMLElement; content: HTMLElement; contentHeight?: number; active?: boolean; };
+
 const Events = {
   expand: 'expand',
   collapse: 'collapse'
@@ -40,28 +56,42 @@ let defaults: CollapseConfig = {
 }
 
 /**
- * @export
- * @class Collapse
- * @extends {EventEmitter}
- * @example
- * <collapse>
- *   <div>
- *     <header>title 1</header>
- *     <article>article 1</article>
- *   </div>
- *   <div>
- *     <header>title 1</header>
- *     <article>article 1</article>
- *   </div>
- *   <div>
- *     <header>title 1</header>
- *     <article>article 1</article>
- *   </div>
- * </collapse>
+ * Collapse
  *
- * const collapse = new Collapse(document.getElementById('collapse'), {});
+ * ### Example
+ *
+ * ```html
+ * <section id="collapse">
+ *   <div>
+ *     <header>title 1</header>
+ *     <article>content 1</article>
+ *   </div>
+ *   <div>
+ *     <header>title 2</header>
+ *     <article>content 2</article>
+ *   </div>
+ *   <div>
+ *     <header>title 3</header>
+ *     <article>content 3</article>
+ *   </div>
+ * </section>
+ * ```
+ *
+ * ```javascript
+ * const collapse = new Collapse(document.getElementById('collapse'), {
+ *   selectors: {
+ *     title: 'header', // by default
+ *     content: 'article' // by default
+ *   },
+ *   event: 'click', // by default
+ *   useHeight: true, // by default
+ *   classes: { active: 'active' },
+ *   accordion: true,
+ *   indexes: [1],
+ * });
  * collapse.on('collapse', (content, title) => {});
  * collapse.on('expand', (content, title) => {});
+ * ```
  */
 export class Collapse extends EventEmitter {
   host: HTMLElement;
@@ -69,6 +99,9 @@ export class Collapse extends EventEmitter {
   private items: Array<CollapseElement> = [];
   private busy: boolean;
 
+  /**
+   * Modify the default configuration
+   */
   static config(config: CollapseConfig, pure?: boolean): CollapseConfig {
     const ret = mergeDefault(defaults, config) as CollapseConfig;
 
@@ -77,11 +110,10 @@ export class Collapse extends EventEmitter {
   }
 
   /**
-   * Creates an instance of Collapse.
+   * Cconstructor
    *
-   * @param {HTMLElement} element
-   * @param {CollapseConfig} [config={}]
-   * @memberof Collapse
+   * @param element -
+   * @param config - CollapseConfig
    */
   constructor(element: HTMLElement, config: CollapseConfig = {}) {
     super();
@@ -97,6 +129,11 @@ export class Collapse extends EventEmitter {
     });
   }
 
+  /**
+   * Toggle display the specified item
+   *
+   * @param index -
+   */
   toggle(index: number): void {
     const item = this.items[index];
 
@@ -105,11 +142,10 @@ export class Collapse extends EventEmitter {
   }
 
   /**
-   * Collapses a specified item
+   * Collapse the specified item
    *
-   * @param {number} index
-   * @param {boolean} directly
-   * @memberof Collapse
+   * @param index -
+   * @param directly - collapse directly without animation
    */
   collapse(index: number, directly?: boolean): void {
     const item = this.items[index];
@@ -138,11 +174,10 @@ export class Collapse extends EventEmitter {
   }
 
   /**
-   * Expands a specified item
+   * Expand the specified item
    *
-   * @param {number} index
-   * @param {boolean} directly
-   * @memberof Collapse
+   * @param index
+   * @param directly - expand directly without animation
    */
   expand(index: number, directly?: boolean): void {
     const item = this.items[index];
@@ -174,12 +209,10 @@ export class Collapse extends EventEmitter {
       this.items.forEach((_, i) => index !== i && this.collapse(i))
   }
 
-
   /**
-   * Refresh the hole list
+   * Refresh list
    *
-   * @param {boolean} reset
-   * @memberof Collapse
+   * @param reset - rest status using initial configuration
    */
   refresh(reset: boolean): void {
     const titles = this.host.querySelectorAll(this.config.selectors.title);
@@ -205,6 +238,9 @@ export class Collapse extends EventEmitter {
       items.forEach((_, i: number) => this[~this.config.indexes.indexOf(i) ? 'expand' : 'collapse'](i, true));
   }
 
+  /**
+   * Destroy instance, remove all listeners
+   */
   destroy() {
     this.removeAllListeners();
     this.host = this.items = this.config = null;

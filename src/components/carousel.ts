@@ -1,25 +1,49 @@
-import { EventEmitter } from 'eventemitter3';
-import { bindOnce, mergeDefault, css, transitionEnd, isTouch } from '../utils';
+import { bindOnce, css, EventEmitter, forEach, isTouch, mergeDefault, transitionEnd } from '../utils';
 
-export interface CarouselStyle {
-};
+interface CarouselStyle {
+}
 
-export interface CarouselConfig {
+interface CarouselConfig {
+  /**
+   * CSS selectors for quering carousel item
+   */
   selectors?: {
     item: string;
   };
+  /**
+   * Class names
+   */
   classes?: CarouselStyle;
-  delay?: number;
+  /**
+   *  Slide speed in ms
+   */
   speed?: number;
+  /**
+   *  Loop mode
+   */
   continuous?: boolean;
+  /**
+   * Threshold to determine if the slide is valid (0-1)
+   */
   threshold?: number;
+  /**
+   * Resistance (0-1)
+   */
   resistance?: number;
   /**
-   *  index of slide which need to be showed after initialization
+   *  Index of slide which need to be showed after initialization
    */
   index?: number;
+  /**
+   *  Autoplay
+   */
   auto?: boolean;
-};
+  /**
+   *  Dely for autoplay in ms
+   */
+  delay?: number;
+}
+
 interface CarouselElement { el: HTMLElement; index: number; };
 
 const Events = {
@@ -51,30 +75,39 @@ let defaults: CarouselConfig = {
 };
 
 /**
- * @export
- * @class Carousel
- * @extends {EventEmitter}
- * @example
- * <carousel>
- *   <div>
- *     <div>
- *       <header>title 1</header>
- *       <article>article 1</article>
- *     </div>
- *     <div>
- *       <header>title 1</header>
- *       <article>article 1</article>
- *     </div>
- *     <div>
- *       <header>title 1</header>
- *       <article>article 1</article>
- *     </div>
- *   <div>
- * </carousel>
+ * Carousel
  *
- * const carousel = new Carousel(document.getElementById('carousel'), {});
- * carousel.on('slide', (current, next) => {})
- * carousel.on('slideChange', (current, previous) => {})
+ * ### Example
+ *
+ * ```html
+ * <section id="slide">
+ *   <ul>
+ *     <li>slide 1</li>
+ *     <li>slide 2</li>
+ *     <li>slide 3</li>
+ *   <ul>
+ * </section>
+ * ```
+ *
+ * ```javascript
+ * const slide = new Carousel(document.getElementById('slide'), {
+ *   selectors: {
+ *     item: 'li' // by default
+ *   },
+ *   speed: 500, // by default
+ *   threshold: .4, // by default
+ *   resistance: .4, // by default
+ *   delay: 4000 // by default
+ *   auto: true,
+ *   index: 1,
+ * });
+ *
+ * // triggered before slide
+ * slide.on('slide', (current, next) => {})
+ *
+ * // triggered after slide
+ * slide.on('slideChange', (current, previous) => {})
+ * ```
  */
 export class Carousel extends EventEmitter {
   host: HTMLElement;
@@ -88,6 +121,9 @@ export class Carousel extends EventEmitter {
   private instance: any;
   private running: boolean;
 
+  /**
+   * Modify the default configuration
+   */
   static config(config: CarouselConfig, pure?: boolean): CarouselConfig {
     const ret = mergeDefault(defaults, config) as CarouselConfig;
 
@@ -95,16 +131,17 @@ export class Carousel extends EventEmitter {
     if (ret.threshold < 0 || ret.threshold > 1) ret.threshold = defaults.threshold;
     if (ret.resistance < 0 || ret.resistance > 1) ret.resistance = defaults.resistance;
 
+    ret.resistance = 1 - ret.resistance;
+
     if (pure) return ret;
     else defaults = ret;
   }
 
   /**
-   * Creates an instance of Carousel.
+   * Cconstructor
    *
-   * @param {HTMLElement} element
-   * @param {CarouselConfig} [config={}]
-   * @memberof Carousel
+   * @param element -
+   * @param config - CarouselConfig
    */
   constructor(element: HTMLElement, config: CarouselConfig = {}) {
     super();
@@ -117,12 +154,15 @@ export class Carousel extends EventEmitter {
     if (this.config.auto) this.start();
   }
 
-  setup() {
+  /**
+   * Requery all slide items
+   */
+  setup(): void {
     const container = this.host.querySelector(this.config.selectors.item).parentElement;
     const items: CarouselElement[] = [];
     const width = container.offsetWidth;
 
-    Array.from(container.children).forEach((el: HTMLElement, index) => {
+    forEach(container.children, (el: HTMLElement, index) => {
       css(el, {
         width: width + 'px',
         cssFloat: 'left',
@@ -151,7 +191,7 @@ export class Carousel extends EventEmitter {
     this.slide(this.config.index, 0);
   }
 
-  setupEvents() {
+  private setupEvents(): void {
     const self = this;
     const start = { x: 0, y: 0 }, delta = { x: 0, y: 0 };
     const events = {
@@ -235,6 +275,23 @@ export class Carousel extends EventEmitter {
     }
   }
 
+  private translate(dist, speed): void {
+    const transform = `translate3d(${(-dist).toFixed(3)}px, 0, 0)`;
+    const transitionDuration = speed + 'ms';
+
+    css(this.container, {
+      transform, transitionDuration,
+      webkitTransform: transform,
+      webkitTransitionDuration: transitionDuration
+    } as CSSStyleDeclaration);
+  }
+
+  /**
+   * Slide to a position
+   *
+   * @param to - The index number to slide to
+   * @param speed - CSS transitionDuration in ms
+   */
   slide(to: number, speed: number): Promise<boolean> {
     if (to < 0 || to > this.size - 1 || this.busy) return Promise.resolve(false);
 
@@ -290,26 +347,28 @@ export class Carousel extends EventEmitter {
     })
   }
 
-  private translate(dist, speed) {
-    const transform = `translate3d(${(-dist).toFixed(3)}px, 0, 0)`;
-    const transitionDuration = speed + 'ms';
-
-    css(this.container, {
-      transform, transitionDuration,
-      webkitTransform: transform,
-      webkitTransitionDuration: transitionDuration
-    } as CSSStyleDeclaration);
-  }
-
+  /**
+   * Slide to next
+   *
+   * @returns promise
+   */
   next(): Promise<boolean> {
     return this.slide(this.current + 1, this.config.speed);
   }
 
+  /**
+  * Slide to previous
+  *
+  * @returns promise
+  */
   prev(): Promise<boolean> {
     return this.slide(this.current - 1, this.config.speed);
   }
 
-  start() {
+  /**
+   * Autoplay
+   */
+  start(): void {
     if (this.running) return;
     this.stop();
     this.running = true;
@@ -325,13 +384,19 @@ export class Carousel extends EventEmitter {
     fn();
   }
 
-  stop() {
+  /**
+   * Stop autoplay
+   */
+  stop(): void {
     clearInterval(this.instance);
     this.instance = null;
     this.running = false;
   }
 
-  destroy() {
+  /**
+   * Destroy instance, remove all listeners
+   */
+  destroy(): void {
     this.removeAllListeners();
     this.stop();
     this.host = this.items = this.container = null;

@@ -1,6 +1,6 @@
 {
   "name": "invi",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "A simple UI library which has no UI.",
   "repository": {
     "type": "git",
@@ -10,7 +10,7 @@
     "ui",
     "javascript"
   ],
-  "main": "dist/index.js",
+  "browser": "./index.js",
   "scripts": {
     "start": "webpack",
     "build": "webpack"
@@ -20,12 +20,10 @@
   "devDependencies": {
     "@types/node": "^10.12.10",
     "clean-webpack-plugin": "^1.0.0",
+    "fs-extra": "^7.0.1",
     "ts-loader": "^5.3.0",
     "typescript": "^3.1.6",
     "webpack": "^4.26.1",
     "webpack-cli": "^3.1.2"
-  },
-  "dependencies": {
-    "eventemitter3": "^3.1.0"
   }
 }
