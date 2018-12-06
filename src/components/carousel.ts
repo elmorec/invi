@@ -56,7 +56,7 @@ const Events = {
   } : {
       start: 'mousedown',
       move: 'mousemove',
-      end: ['mouseup', 'mouseout']
+      end: ['mouseup', 'mouseleave']
     })
 };
 
