@@ -1,6 +1,9 @@
 import { bindOnce, css, EventEmitter, forEach, isTouch, mergeDefault, transitionEnd } from '../utils';
 
 interface CarouselStyle {
+  /**
+   * Class name which applied to current slide
+   */
   active: string;
 }
 
@@ -295,57 +298,62 @@ export class Carousel extends EventEmitter {
     const classes = this.config.classes;
     this.busy = true;
 
-    return new Promise(resolve => {
-      let next;
-      if (continuous) {
-        // determine if it's out of bounds the next move
-        if (to === 0) {
-          this.items.unshift(this.items.pop());
-          next = 1;
-        } else if (to === this.size - 1) {
-          this.items.push(this.items.shift());
-          next = this.size - 2;
-        } else next = to;
+    if (classes.active)
+      this.items[this.current].el.classList.remove(classes.active);
+
+    let next;
+    if (continuous) {
+      // determine if it's out of bounds the next move
+      if (to === 0) {
+        this.items.unshift(this.items.pop());
+        next = 1;
+      } else if (to === this.size - 1) {
+        this.items.push(this.items.shift());
+        next = this.size - 2;
       } else next = to;
+    } else next = to;
 
-      // emit ongoing event, pass current, next index
-      setTimeout(() => {
-        this.emit(Events.slide, current, this.items[next].index);
-      }, 0);
+    // emit ongoing event, pass current, next index
+    setTimeout(() => {
+      this.emit(Events.slide, current, this.items[next].index);
+    }, 0);
 
-      this.translate(to * this.step, speed);
+    this.translate(to * this.step, speed);
 
-      if (classes.active) {
-        this.items[current].el.classList.remove(classes.active);
+    if (speed > 0)
+      return new Promise(resolve => {
+        bindOnce(this.container, transitionEnd, () => {
+          cb.call(this, function () {
+            resolve(true);
+          })
+        });
+      })
+    else return cb.call(this) as any;
+
+    function cb(fn?: () => void) {
+      if (classes.active)
         this.items[next].el.classList.add(classes.active);
-      }
 
-      if (speed > 0)
-        bindOnce(this.container, transitionEnd, cb.bind(this));
-      else setTimeout(() => cb.call(this), 0);
-
-      function cb() {
-        // sync
-        if (continuous) {
-          if (to === 0) {
-            this.container.insertBefore(this.container.children[this.size - 1], this.container.children[0]);
-            this.translate(this.step, 0);
-          } else if (to === this.size - 1) {
-            this.container.appendChild(this.container.children[0]);
-            this.translate(this.step * (to - 1), 0);
-          }
+      // sync
+      if (continuous) {
+        if (to === 0) {
+          this.container.insertBefore(this.container.children[this.size - 1], this.container.children[0]);
+          this.translate(this.step, 0);
+        } else if (to === this.size - 1) {
+          this.container.appendChild(this.container.children[0]);
+          this.translate(this.step * (to - 1), 0);
         }
-
-        this.current = next;
-
-        setTimeout(() => {
-          this.busy = false;
-          // emit ongoing event, pass current, previous index
-          this.emit(Events.slideChange, this.items[next].index, current);
-          resolve(true);
-        }, 0)
       }
-    })
+
+      this.current = next;
+      this.busy = false;
+
+      setTimeout(() => {
+        // emit ongoing event, pass current, previous index
+        this.emit(Events.slideChange, this.items[next].index, current);
+        fn && fn();
+      }, 0)
+    }
   }
 
   /**

@@ -1,0 +1,125 @@
+body {
+  margin: 0;
+}
+ul {
+  padding: 0;
+}
+li {
+  list-style: none;
+}
+
+/* toast */
+[class^="toast-"] {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate3d(-50%,-50%, 0);
+  z-index: 10;
+  background: rgba(0, 0, 0, .66);
+  color: #fff;
+}
+[class^="toast-"].enter {
+  animation: fade-in .5s;
+}
+[class^="toast-"].leave {
+  animation: fade-out .5s;
+}
+
+/* tab */
+a[class^="tab-"] {
+  background-color: red;
+}
+
+/* collapsible */
+collapsible {
+  display: block;
+  margin: 4px 0;
+}
+collapsible > div {
+  overflow: hidden;
+}
+collapsible article {
+  padding: 10pxm;
+  transition: max-height .5s, padding .5s;
+}
+
+/* modal */
+[class^="modal-"] {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  text-align: center;
+}
+[class^="modal-"]:after {
+  display: inline-block;
+  height: 100%;
+  content: "";
+  vertical-align: middle;
+}
+[class^="modal-"] .backdrop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+[class^="modal-"] .body {
+  display: inline-block;
+  background-color: #fff;
+  vertical-align: middle;
+  transform: translate3d(0, 0, 0);
+}
+[class^="modal-"].enter .backdrop {
+  animation: fade-in .5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+[class^="modal-"].enter .body {
+  animation: modal-enter .5s cubic-bezier(0, 0, 0.2, 1) both;
+}
+[class^="modal-"].leave .backdrop {
+  animation: fade-out .5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+[class^="modal-"].leave .body {
+  animation: modal-leave .5s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes modal-leave {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+}

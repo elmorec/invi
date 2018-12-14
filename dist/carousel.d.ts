@@ -25,6 +25,9 @@ declare class EventEmitter {
     emit(type: string, ...evt: any[]): void;
 }
 interface CarouselStyle {
+    /**
+     * Class name which applied to current slide
+     */
     active: string;
 }
 interface CarouselConfig {
