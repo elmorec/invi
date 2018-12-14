@@ -13,7 +13,7 @@ module.exports = function (config) {
       './scripts/components/carousel.js',
       './scripts/components/collapsible.js',
     ],
-    browsers: ['Chrome'],
+    browsers: [typeof process.env.TRAVIS_JOB_ID !== 'undefined' ? 'ChromeHeadless' : 'Chrome'],
     port: 9876,
     colors: true,
     singleRun: true,
