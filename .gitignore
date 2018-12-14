@@ -3,5 +3,8 @@ coverage/
 example/
 tmp/
 src/themes/
+dist/README.md
+dist/package.json
+dist/LICENSE
 package-lock.json
 .DS_Store

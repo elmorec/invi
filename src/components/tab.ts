@@ -29,6 +29,25 @@ interface TabConfig {
   event?: string;
 }
 
+interface ActivatedTabSnapshot {
+  /**
+   * current actived tab element
+   */
+  tab: HTMLElement;
+  /**
+   * current actived content element
+   */
+  content: HTMLElement;
+  /**
+   * current index
+   */
+  current: number;
+  /**
+   * previous index
+   */
+  previous: number;
+}
+
 const Events = {
   switch: 'switch'
 }
@@ -83,8 +102,8 @@ export class Tab extends EventEmitter {
   host: HTMLElement;
   private config: TabConfig;
   private current = 0;
-  private tabs: Element[] = [];
-  private contents: Element[] = [];
+  private tabs: HTMLElement[] = [];
+  private contents: HTMLElement[] = [];
 
   /**
    * Modify the default configuration
@@ -107,6 +126,7 @@ export class Tab extends EventEmitter {
     this.config = Tab.config(config, true);
     this.host = element;
 
+    if (this.config.index) this.current = this.config.index;
     this.refresh();
 
     delegate.bind(element)(this.config.event, this.config.selectors.tab, (target: HTMLElement) => {
@@ -119,29 +139,39 @@ export class Tab extends EventEmitter {
    * Switch to the specified tab
    *
    * @param index -
-   * @param force
+   * @param force - silence switch (synchronize the operation)
+   * @returns return a promise if force is negative
    */
-  switch(index: number, force?: boolean): void {
+  switch(index: number, force?: boolean): Promise<ActivatedTabSnapshot> | void {
     if (index === this.current && !force || !this.tabs[index]) return;
 
+    const current = this.current;
     const classes = this.config.classes;
-    const currentNav = this.tabs[this.current];
-    const currentContent = this.contents[this.current] as HTMLElement;
+    const currentTab = this.tabs[current];
+    const currentContent = this.contents[current] as HTMLElement;
     const tab = this.tabs[index];
     const content = this.contents[index] as HTMLElement;
 
     if (classes.active) {
-      [currentNav, currentContent].forEach(el => el.classList.remove(classes.active));
+      [currentTab, currentContent].forEach(el => el.classList.remove(classes.active));
       [tab, content].forEach(el => el.classList.add(classes.active));
     }
-
     currentContent.style.display = 'none';
     content.style.display = '';
-
-    setTimeout(() => {
-      this.emit(Events.switch, tab, content, index, this.current);
-    }, 0);
     this.current = index;
+
+    if (force) return;
+
+    return new Promise(resolve => {
+      setTimeout(() => {
+        this.emit(Events.switch, tab, content, index, current);
+        resolve({
+          tab, content,
+          current: index,
+          previous: current
+        });
+      }, 0);
+    });
   }
 
   /**
@@ -151,7 +181,7 @@ export class Tab extends EventEmitter {
     const tabs = this.host.querySelectorAll(this.config.selectors.tab);
     const contents = this.host.querySelectorAll(this.config.selectors.content);
 
-    forEach(tabs, (tab, i) => {
+    forEach(tabs, (tab: HTMLElement, i) => {
       const content = contents[i] as HTMLElement;
 
       if (content) {

@@ -24,13 +24,13 @@ declare class EventEmitter {
      */
     emit(type: string, ...evt: any[]): void;
 }
-interface CollapseStyle {
+interface CollapsibleStyle {
     /**
      * Class name which applied to the actived element
      */
     active: string;
 }
-interface CollapseConfig {
+interface CollapsibleConfig {
     /**
      * CSS selectors for quering title and content element
      */
@@ -41,7 +41,7 @@ interface CollapseConfig {
     /**
      * Class names
      */
-    classes?: CollapseStyle;
+    classes?: CollapsibleStyle;
     /**
      * Event type
      */
@@ -59,8 +59,22 @@ interface CollapseConfig {
      */
     indexes?: number[];
 }
+interface CollapsibleSnapshot {
+    /**
+     * current collapsed/expanded title element
+     */
+    title: HTMLElement;
+    /**
+     * current collapsed/expanded content element
+     */
+    content: HTMLElement;
+    /**
+     * index
+     */
+    index: number;
+}
 /**
- * Collapse
+ * Collapsible
  *
  * ### Example
  *
@@ -82,7 +96,7 @@ interface CollapseConfig {
  * ```
  *
  * ```javascript
- * const collapse = new Collapse(document.getElementById('collapse'), {
+ * const collapsible = new Collapsible(document.getElementById('collapse'), {
  *   selectors: {
  *     title: 'header', // by default
  *     content: 'article' // by default
@@ -93,50 +107,53 @@ interface CollapseConfig {
  *   accordion: true,
  *   indexes: [1],
  * });
- * collapse.on('collapse', (content, title) => {});
- * collapse.on('expand', (content, title) => {});
+ * collapsible.on('collapse', (title, content, index) => {});
+ * collapsible.on('expand', (title, content, index) => {});
  * ```
  */
-export declare class Collapse extends EventEmitter {
+export declare class Collapsible extends EventEmitter {
     host: HTMLElement;
     private config;
     private items;
-    private busy;
     /**
      * Modify the default configuration
      */
-    static config(config: CollapseConfig, pure?: boolean): CollapseConfig;
+    static config(config: CollapsibleConfig, pure?: boolean): CollapsibleConfig;
     /**
      * Cconstructor
      *
      * @param element -
-     * @param config - CollapseConfig
+     * @param config - CollapsibleConfig
      */
-    constructor(element: HTMLElement, config?: CollapseConfig);
+    constructor(element: HTMLElement, config?: CollapsibleConfig);
     /**
      * Toggle display the specified item
      *
      * @param index -
+     * @returns promise
      */
-    toggle(index: number): void;
+    toggle(index: number): Promise<CollapsibleSnapshot>;
     /**
      * Collapse the specified item
      *
      * @param index -
-     * @param directly - collapse directly without animation
+     * @param directly - collapse directly without animation (synchronize the operation)
+     * @returns return a promise if directly is negative
      */
-    collapse(index: number, directly?: boolean): void;
+    collapse(index: number, directly?: boolean): Promise<CollapsibleSnapshot> | void;
     /**
      * Expand the specified item
      *
      * @param index
-     * @param directly - expand directly without animation
+     * @param directly - expand directly without animation (synchronize the operation)
+     * @returns return a promise if directly is negative
      */
-    expand(index: number, directly?: boolean): void;
+    expand(index: number, directly?: boolean): Promise<CollapsibleSnapshot> | void;
     /**
      * Refresh list
      *
      * @param reset - rest status using initial configuration
+     * @returns promise
      */
     refresh(reset: boolean): void;
     /**

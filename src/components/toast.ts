@@ -13,10 +13,6 @@ interface ToastStyle {
    * Class name applied to container when it is detached from DOM
    */
   leave: string;
-  /**
-   * Class name of the backdrop element
-   */
-  backdrop: string;
 };
 
 interface ToastConfig {
@@ -32,10 +28,6 @@ interface ToastConfig {
    * Toast duration
    */
   duration?: number;
-  /**
-   * Create a backdrop, aka modal mode
-   */
-  backdrop?: boolean;
   /**
    * Uses `innerHTML` to apply content instead of `innerText`
    */
@@ -66,7 +58,6 @@ let defaults: ToastConfig = {
   content: '',
   animation: true,
   duration: 1000,
-  backdrop: false,
   unsafe: false,
   host: document.body
 };
@@ -109,7 +100,7 @@ let defaults: ToastConfig = {
  * });
  * ```
  */
-const toast = <Toast>function (config: ToastConfig) {
+const toast = <Toast>function (config: ToastConfig = {}) {
   return apply(mergeDefault(defaults, type(config) === 'object' ? config : { content: String(config) }));
 };
 
@@ -118,46 +109,43 @@ toast.config = function config(config: ToastConfig) {
 };
 
 function apply(config: ToastConfig): Promise<void> {
-  // Both `classes.leave` and `classes.enter` are required for animation
-  if (!config.classes || !config.classes.enter || !config.classes.leave && config.animation) {
-    config.animation = false;
-  }
+  let element = document.createElement('div');
+  const classes = config.classes || {} as ToastStyle;
 
-  return new Promise(resolve => {
-    let element = document.createElement('div');
-    const classes = config.classes || {} as ToastStyle;
+  element[config.unsafe ? 'innerHTML' : 'innerText'] = config.content;
+  classes.host && (element.className = classes.host);
 
-    element[config.unsafe ? 'innerHTML' : 'innerText'] = config.content;
-    classes.host && (element.className = classes.host);
+  config.host.appendChild(element);
 
-    if (config.backdrop) element.classList.add(classes.backdrop);
-
-    config.host.appendChild(element);
-
-    if (config.animation) {
-      // enter animation
+  return new Promise<void>(resolve => {
+    if (classes.enter && config.animation) {
+      element.classList.add(classes.enter);
       bindOnce(element, animationEnd, () => {
         element.classList.remove(classes.enter);
+        delay();
+      });
+    } else delay();
 
-        // leave animation
+    function delay() {
+      setTimeout(() => resolve(), config.duration);
+    }
+  }).then(() => {
+    if (classes.leave && config.animation)
+      return new Promise<void>(resolve => {
+        element.classList.add(classes.leave);
         bindOnce(element, animationEnd, () => {
+          element.classList.remove(classes.leave);
           destroy();
-        })
-
-        setTimeout(() => element.classList.add(classes.leave), config.duration);
-      })
-      element.classList.add(classes.enter);
-    }
-    else {
-      setTimeout(() => destroy(), config.duration);
-    }
+          resolve();
+        });
+      });
+    else destroy();
 
     function destroy() {
       config.host.removeChild(element);
       element = null;
-      resolve();
     }
-  })
+  });
 }
 
 export { toast };

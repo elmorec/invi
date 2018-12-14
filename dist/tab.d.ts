@@ -51,6 +51,24 @@ interface TabConfig {
      */
     event?: string;
 }
+interface ActivatedTabSnapshot {
+    /**
+     * current actived tab element
+     */
+    tab: HTMLElement;
+    /**
+     * current actived content element
+     */
+    content: HTMLElement;
+    /**
+     * current index
+     */
+    current: number;
+    /**
+     * previous index
+     */
+    previous: number;
+}
 /**
  * Tab
  *
@@ -109,9 +127,10 @@ export declare class Tab extends EventEmitter {
      * Switch to the specified tab
      *
      * @param index -
-     * @param force
+     * @param force - silence switch (synchronize the operation)
+     * @returns return a promise if force is negative
      */
-    switch(index: number, force?: boolean): void;
+    switch(index: number, force?: boolean): Promise<ActivatedTabSnapshot> | void;
     /**
      * Refresh tab list
      */

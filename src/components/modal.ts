@@ -147,7 +147,7 @@ let defaults: ModalConfig = {
  *       target: '_blank',
  *     },
  *     {
- *       label: 'noop', callback: function (event) {
+ *       label: 'noop', callback: function () {
  *         this.close()
  *       }
  *     },
@@ -164,7 +164,7 @@ let defaults: ModalConfig = {
  * ```
  */
 export class Modal extends EventEmitter {
-  private state: STATE;
+  private state = STATE.CLOSED;
   private host: Element;
   private config: ModalConfig;
 
@@ -175,10 +175,6 @@ export class Modal extends EventEmitter {
    */
   static config(config: ModalConfig, pure?: boolean): ModalConfig {
     const ret = mergeDefault(defaults, config);
-
-    if (!ret.classes || !ret.classes.enter || !ret.classes.leave && ret.animation) {
-      ret.animation = false;
-    }
 
     if (pure) return ret;
     else defaults = ret;
@@ -275,7 +271,7 @@ export class Modal extends EventEmitter {
     if (this.state === STATE.OPENING || this.state === STATE.OPENED)
       return Promise.reject();
 
-    if (!this.config.animation) {
+    if (!this.config.classes.enter || !this.config.animation) {
       this.config.host.appendChild(this.host);
       this.state = STATE.OPENED;
       this.emit(Events.open);
@@ -288,7 +284,7 @@ export class Modal extends EventEmitter {
         this.host.classList.remove(this.config.classes.enter);
         this.state = STATE.OPENED;
         this.emit(Events.open);
-        resolve();
+        resolve(this as any);
       });
       this.state = STATE.OPENING;
       this.config.host.appendChild(this.host);
@@ -304,7 +300,7 @@ export class Modal extends EventEmitter {
     if (this.state === STATE.CLOSING || this.state === STATE.CLOSED)
       return Promise.reject();
 
-    if (!this.config.animation) {
+    if (!this.config.classes.leave || !this.config.animation) {
       this.config.host.removeChild(this.host);
       this.state = STATE.CLOSED;
       this.emit(Events.close);
@@ -317,7 +313,7 @@ export class Modal extends EventEmitter {
         this.host.classList.remove(this.config.classes.leave);
         this.state = STATE.CLOSED;
         this.emit(Events.close);
-        resolve();
+        resolve(this as any);
       });
 
       this.state = STATE.CLOSING;

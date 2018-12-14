@@ -25,6 +25,7 @@ declare class EventEmitter {
     emit(type: string, ...evt: any[]): void;
 }
 interface CarouselStyle {
+    active: string;
 }
 interface CarouselConfig {
     /**
@@ -130,12 +131,19 @@ export declare class Carousel extends EventEmitter {
     private setupEvents;
     private translate;
     /**
-     * Slide to a position
+     * Move to a position with transition
      *
      * @param to - The index number to slide to
      * @param speed - CSS transitionDuration in ms
      */
-    slide(to: number, speed: number): Promise<boolean>;
+    private move;
+    /**
+     * Slide to item
+     *
+     * @param index -
+     * @returns promise
+     */
+    slide(index: number): Promise<boolean>;
     /**
      * Slide to next
      *

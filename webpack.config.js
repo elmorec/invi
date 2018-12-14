@@ -4,7 +4,7 @@ const pkg = require('./package.json');
 
 const task = process.env.npm_lifecycle_event;
 const isDev = task === 'start';
-const components = ['collapse', 'toast', 'modal', 'tab', 'carousel'];
+const components = ['collapsible', 'toast', 'modal', 'tab', 'carousel'];
 
 module.exports = {
   mode: 'production',

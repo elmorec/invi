@@ -145,7 +145,7 @@ interface ModalElements {
  *       target: '_blank',
  *     },
  *     {
- *       label: 'noop', callback: function (event) {
+ *       label: 'noop', callback: function () {
  *         this.close()
  *       }
  *     },

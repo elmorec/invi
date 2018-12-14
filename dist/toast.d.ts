@@ -11,10 +11,6 @@ interface ToastStyle {
      * Class name applied to container when it is detached from DOM
      */
     leave: string;
-    /**
-     * Class name of the backdrop element
-     */
-    backdrop: string;
 }
 interface ToastConfig {
     /**
@@ -29,10 +25,6 @@ interface ToastConfig {
      * Toast duration
      */
     duration?: number;
-    /**
-     * Create a backdrop, aka modal mode
-     */
-    backdrop?: boolean;
     /**
      * Uses `innerHTML` to apply content instead of `innerText`
      */

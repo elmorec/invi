@@ -1,6 +1,7 @@
 import { bindOnce, css, EventEmitter, forEach, isTouch, mergeDefault, transitionEnd } from '../utils';
 
 interface CarouselStyle {
+  active: string;
 }
 
 interface CarouselConfig {
@@ -170,14 +171,6 @@ export class Carousel extends EventEmitter {
       items.push({ el, index });
     });
 
-    if (this.config.continuous && items.length === 2) {
-      const c0 = items[0].el.cloneNode(true) as HTMLElement;
-      const c1 = items[1].el.cloneNode(true) as HTMLElement;
-      items.push({ el: c0, index: 0 }, { el: c1, index: 1 });
-      container.appendChild(c0);
-      container.appendChild(c1);
-    }
-
     css(container, {
       overflow: 'hidden',
       width: width * items.length + 'px'
@@ -188,12 +181,13 @@ export class Carousel extends EventEmitter {
     this.size = items.length;
     this.step = width;
 
-    this.slide(this.config.index, 0);
+    this.move(this.config.index, 0);
   }
 
   private setupEvents(): void {
     const self = this;
     const start = { x: 0, y: 0 }, delta = { x: 0, y: 0 };
+    const continuous = self.config.continuous && self.size > 2;
     const events = {
       map: {},
       handleEvent(event) {
@@ -234,7 +228,7 @@ export class Carousel extends EventEmitter {
         const threshold = self.step * self.config.threshold;
         const speed = Math.ceil(self.config.speed / self.step * Math.abs(delta.x));
         if (delta.x > threshold) {
-          if (self.config.continuous || self.current > 0)
+          if (continuous || self.current > 0)
             self.prev().then(() => {
               if (self.config.auto) self.start.call(self);
             });
@@ -242,7 +236,7 @@ export class Carousel extends EventEmitter {
             self.translate(self.current * self.step, speed);
           }
         } else if (delta.x < -threshold) {
-          if (self.config.continuous || self.current < self.size - 1) {
+          if (continuous || self.current < self.size - 1) {
             self.next().then(() => {
               if (self.config.auto) self.start.call(self);
             });
@@ -287,21 +281,23 @@ export class Carousel extends EventEmitter {
   }
 
   /**
-   * Slide to a position
+   * Move to a position with transition
    *
    * @param to - The index number to slide to
    * @param speed - CSS transitionDuration in ms
    */
-  slide(to: number, speed: number): Promise<boolean> {
-    if (to < 0 || to > this.size - 1 || this.busy) return Promise.resolve(false);
+  private move(to: number, speed: number): Promise<boolean> {
+    if (this.busy || to < 0 || to > this.size - 1) return Promise.resolve(false);
+
+    // save current index before items array changed
+    const current = (this.current === to && to === 0) ? 0 : this.items[this.current].index;
+    const continuous = this.config.continuous && this.size > 2;
+    const classes = this.config.classes;
+    this.busy = true;
 
     return new Promise(resolve => {
-      this.busy = true;
-      // save current index before items array changed
-      const current = (this.current === to && to === 0) ? undefined : this.items[this.current].index;
-
       let next;
-      if (this.config.continuous) {
+      if (continuous) {
         // determine if it's out of bounds the next move
         if (to === 0) {
           this.items.unshift(this.items.pop());
@@ -319,13 +315,18 @@ export class Carousel extends EventEmitter {
 
       this.translate(to * this.step, speed);
 
+      if (classes.active) {
+        this.items[current].el.classList.remove(classes.active);
+        this.items[next].el.classList.add(classes.active);
+      }
+
       if (speed > 0)
         bindOnce(this.container, transitionEnd, cb.bind(this));
       else setTimeout(() => cb.call(this), 0);
 
       function cb() {
-        if (this.config.continuous) {
-          // sync
+        // sync
+        if (continuous) {
           if (to === 0) {
             this.container.insertBefore(this.container.children[this.size - 1], this.container.children[0]);
             this.translate(this.step, 0);
@@ -340,11 +341,27 @@ export class Carousel extends EventEmitter {
         setTimeout(() => {
           this.busy = false;
           // emit ongoing event, pass current, previous index
-          this.emit(Events.slideChange, this.items[this.current].index, current);
+          this.emit(Events.slideChange, this.items[next].index, current);
           resolve(true);
         }, 0)
       }
     })
+  }
+
+  /**
+   * Slide to item
+   *
+   * @param index -
+   * @returns promise
+   */
+  slide(index: number): Promise<boolean> {
+    if (index < 0 || index > this.size - 1 || this.busy) return Promise.resolve(false);
+
+    let i = 0;
+    while (i < this.size) {
+      if (this.items[i].index === index) return this.move(i, this.config.speed);
+      i++;
+    }
   }
 
   /**
@@ -353,7 +370,7 @@ export class Carousel extends EventEmitter {
    * @returns promise
    */
   next(): Promise<boolean> {
-    return this.slide(this.current + 1, this.config.speed);
+    return this.move((this.size < 3 && this.current === this.size - 1) ? 0 : this.current + 1, this.config.speed);
   }
 
   /**
@@ -362,22 +379,20 @@ export class Carousel extends EventEmitter {
   * @returns promise
   */
   prev(): Promise<boolean> {
-    return this.slide(this.current - 1, this.config.speed);
+    return this.move((this.size < 3 && this.current === 0) ? this.size - 1 : this.current - 1, this.config.speed);
   }
 
   /**
    * Autoplay
    */
   start(): void {
-    if (this.running) return;
+    if (this.running || this.size < 3) return;
     this.stop();
     this.running = true;
 
     const fn = () => {
       if (this.running) this.instance = setTimeout(() => {
-        this.next().then(() => {
-          fn()
-        });
+        this.next().then(fn);
       }, this.config.delay);
     };
 
