@@ -1,6 +1,6 @@
 {
   "name": "invi",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "A simple UI library which has no UI.",
   "repository": {
     "type": "git",
@@ -27,7 +27,7 @@
     "karma-chrome-launcher": "^2.2.0",
     "karma-jasmine": "^2.0.1",
     "ts-loader": "^5.3.0",
-    "typescript": "^3.1.6",
+    "typescript": "^3.2.2",
     "webpack": "^4.26.1",
     "webpack-cli": "^3.1.2",
     "zepto": "^1.2.0"

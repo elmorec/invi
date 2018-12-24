@@ -50,7 +50,7 @@ interface CarouselConfig {
 
 interface CarouselElement { el: HTMLElement; index: number; };
 
-const Events = {
+const Events: { [type: string]: string | string[] } = {
   slide: 'slide',
   slideChange: 'slideChange',
   ...(isTouch ? {
@@ -191,25 +191,31 @@ export class Carousel extends EventEmitter {
     const self = this;
     const start = { x: 0, y: 0 }, delta = { x: 0, y: 0 };
     const continuous = self.config.continuous && self.size > 2;
-    const events = {
+    const events: {
+      map: { [type: string]: string; };
+      handleEvent: (event: TouchEvent | MouseEvent) => void;
+      start: (event: TouchEvent | MouseEvent) => void;
+      move: (event: TouchEvent | MouseEvent) => void;
+      end: (event: TouchEvent | MouseEvent) => void;
+    } = {
       map: {},
-      handleEvent(event) {
+      handleEvent(this: any, event) {
         if (self.busy) return;
         const handler = this[this.map[event.type]];
         if (handler) handler(event);
       },
       start(event) {
-        const touches = event.touches ? event.touches[0] : event;
+        const touches = isTouch ? (<TouchEvent>event).touches[0] : <MouseEvent>event;
         start.x = touches.pageX;
         start.y = touches.pageY;
 
         if (self.config.auto) self.stop.call(self);
 
-        bindEvents(Events.move, ...Events.end);
+        bindEvents(<string>Events.move, ...(<string[]>Events.end));
       },
       move(event) {
-        if (event.touches && (event.touches.length > 1 || event.scale && event.scale !== 1)) return;
-        const touches = event.touches ? event.touches[0] : event;
+        if ((<TouchEvent>event).touches && (<TouchEvent>event).touches.length > 1) return;
+        const touches = isTouch ? (<TouchEvent>event).touches[0] : <MouseEvent>event;
 
         delta.x = touches.pageX - start.x;
         delta.y = touches.pageY - start.y;
@@ -250,7 +256,7 @@ export class Carousel extends EventEmitter {
           self.translate(self.current * self.step, speed);
         }
 
-        offEvents(Events.move, ...Events.end);
+        offEvents(<string>Events.move, ...(<string[]>Events.end));
       }
     };
 
@@ -262,17 +268,17 @@ export class Carousel extends EventEmitter {
         t.forEach(t => events.map[t] = key);
     }
 
-    bindEvents(Events.start);
+    bindEvents(<string>Events.start);
 
-    function bindEvents(...types) {
+    function bindEvents(...types: string[]) {
       types.forEach(t => self.container.addEventListener(t, events, { passive: false }));
     }
-    function offEvents(...types) {
+    function offEvents(...types: string[]) {
       types.forEach(t => self.container.removeEventListener(t, events));
     }
   }
 
-  private translate(dist, speed): void {
+  private translate(dist: number, speed: number): void {
     const transform = `translate3d(${(-dist).toFixed(3)}px, 0, 0)`;
     const transitionDuration = speed + 'ms';
 
@@ -301,7 +307,7 @@ export class Carousel extends EventEmitter {
     if (classes.active)
       this.items[this.current].el.classList.remove(classes.active);
 
-    let next;
+    let next: number;
     if (continuous) {
       // determine if it's out of bounds the next move
       if (to === 0) {
@@ -315,7 +321,7 @@ export class Carousel extends EventEmitter {
 
     // emit ongoing event, pass current, next index
     setTimeout(() => {
-      this.emit(Events.slide, current, this.items[next].index);
+      this.emit(<string>Events.slide, current, this.items[next].index);
     }, 0);
 
     this.translate(to * this.step, speed);
@@ -330,7 +336,7 @@ export class Carousel extends EventEmitter {
       })
     else return cb.call(this) as any;
 
-    function cb(fn?: () => void) {
+    function cb(this: any, fn?: () => void) {
       if (classes.active)
         this.items[next].el.classList.add(classes.active);
 

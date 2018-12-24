@@ -93,10 +93,10 @@ interface ModalConfig {
  * ```
  */
 interface ModalElements {
-  body?: Element;
-  header?: Element;
-  content?: Element;
-  footer?: Element;
+  body?: HTMLElement;
+  header?: HTMLElement;
+  content?: HTMLElement;
+  footer?: HTMLElement;
 }
 
 enum STATE {
@@ -165,7 +165,7 @@ let defaults: ModalConfig = {
  */
 export class Modal extends EventEmitter {
   private state = STATE.CLOSED;
-  private host: Element;
+  private host: HTMLElement;
   private config: ModalConfig;
 
   el: ModalElements = {};
@@ -190,7 +190,7 @@ export class Modal extends EventEmitter {
     this.config = Modal.config(config, true);
     this.render();
 
-    delegate.bind(this.host)(this.config.event, '[data-action]', target => {
+    delegate.bind(this.host)(this.config.event, '[data-action]', (target: HTMLElement) => {
       const action = target.dataset.action;
       switch (action) {
         case Events.close:
@@ -219,7 +219,7 @@ export class Modal extends EventEmitter {
       backdrop = document.createElement('div'),
       body = document.createElement('div'),
       content = document.createElement('article');
-    let footer;
+    let footer: HTMLElement;
 
     classes.host && (container.className = classes.host);
     classes.backdrop && (backdrop.className = classes.backdrop);

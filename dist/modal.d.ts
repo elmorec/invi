@@ -114,10 +114,10 @@ interface ModalConfig {
  * ```
  */
 interface ModalElements {
-    body?: Element;
-    header?: Element;
-    content?: Element;
-    footer?: Element;
+    body?: HTMLElement;
+    header?: HTMLElement;
+    content?: HTMLElement;
+    footer?: HTMLElement;
 }
 /**
  * Modal

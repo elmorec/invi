@@ -6,7 +6,7 @@ export function type(o: any): string {
 export const isTouch = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0));
 
 export function closest(element: any, selector: string, context: Element = document.body): Element[] {
-  const out = [];
+  const out: Element[] = [];
   const coll = Array.from(context.querySelectorAll(selector));
 
   // while (element && !(element.matches(selector)))
@@ -18,7 +18,7 @@ export function closest(element: any, selector: string, context: Element = docum
   return out;
 }
 
-export function delegate(eventType: string, selector: string, callback: (el: Element, event: Event) => void): void {
+export function delegate(this: Element, eventType: string, selector: string, callback: (el: Element, event: Event) => void): void {
   const element = this;
 
   element.addEventListener(eventType, (event: Event) => {
@@ -28,7 +28,7 @@ export function delegate(eventType: string, selector: string, callback: (el: Ele
   });
 }
 
-export function isDocument(obj): boolean { return obj != null && obj.nodeType == obj.DOCUMENT_NODE }
+export function isDocument(obj: any): boolean { return obj != null && obj.nodeType == obj.DOCUMENT_NODE }
 
 export function forEach<T>(list: ArrayLike<T>, fn: (item: T, index: number) => void): Array<T> {
   return Array.prototype.forEach.call(list, fn)
@@ -38,7 +38,7 @@ export function map<T, K>(list: ArrayLike<T>, fn: (item: T, index: number) => K)
   return Array.prototype.map.call(list, fn)
 }
 
-export function mergeDefault(o1, o2) {
+export function mergeDefault(o1: any, o2: any) {
   const ret = { ...o1 };
   if (type(o2) !== 'object') return ret;
   for (const k in o2) {
@@ -73,7 +73,7 @@ export function css(element: HTMLElement, styles: CSSStyleDeclaration): void {
 }
 
 export class EventEmitter {
-  private events = {};
+  private events: { [type: string]: Function[] } = {};
 
   /**
    * Register an event handler for the given type.
@@ -98,7 +98,7 @@ export class EventEmitter {
   }
 
   removeAllListeners(): void {
-    this.events = [];
+    this.events = {};
   }
 
   /**
