@@ -1,4 +1,4 @@
-import { bindOnce, delegate, EventEmitter, mergeDefault, transitionEnd } from '../utils';
+import { bindOnce, delegate, EventEmitter, forEach, mergeDefaults, transitionend } from './utils';
 
 interface CollapsibleStyle {
   /**
@@ -30,7 +30,7 @@ interface CollapsibleConfig {
   /**
    * Apply height change to DOM for animation propose
    */
-  useHeight?: boolean,
+  animation?: boolean,
   /**
    *  Indexs of items which need to be expanded after initialization
    */
@@ -54,7 +54,7 @@ interface CollapsibleSnapshot {
   index: number;
 }
 
-const renderDelay = 8;
+const renderDelay = 24;
 const Events = {
   expand: 'expand',
   collapse: 'collapse'
@@ -68,7 +68,7 @@ let defaults: CollapsibleConfig = {
   event: 'click',
   indexes: [-1],
   accordion: false,
-  useHeight: true
+  animation: true
 }
 
 /**
@@ -118,7 +118,9 @@ export class Collapsible extends EventEmitter {
    * Modify the default configuration
    */
   static config(config: CollapsibleConfig, pure?: boolean): CollapsibleConfig {
-    const ret = mergeDefault(defaults, config) as CollapsibleConfig;
+    const ret = mergeDefaults(defaults, config) as CollapsibleConfig;
+
+    if (!transitionend) ret.animation = false;
 
     if (pure) return ret;
     else defaults = ret;
@@ -180,12 +182,12 @@ export class Collapsible extends EventEmitter {
     item.busy = true;
 
     return new Promise(resolve => {
-      if (this.config.useHeight) {
+      if (this.config.animation) {
         item.content.style.maxHeight = item.contentHeight + 'px';
         setTimeout(() => {
           item.content.style.maxHeight = item.content.style.paddingTop = item.content.style.paddingBottom = '0';
         }, renderDelay);
-        bindOnce(item.content, transitionEnd, () => {
+        bindOnce(item.content, transitionend, () => {
           // reset
           item.content.style.display = 'none';
           item.content.style.maxHeight = item.content.style.paddingTop = item.content.style.paddingBottom = '';
@@ -233,7 +235,7 @@ export class Collapsible extends EventEmitter {
 
     return Promise.all([
       new Promise<void>(resolve => {
-        if (this.config.useHeight) {
+        if (this.config.animation) {
           // trigger transition
           item.content.style.maxHeight = item.content.style.paddingTop = item.content.style.paddingBottom = '0';
           item.content.style.display = '';
@@ -241,7 +243,7 @@ export class Collapsible extends EventEmitter {
             item.content.style.maxHeight = item.contentHeight + 'px';
             item.content.style.paddingTop = item.content.style.paddingBottom = '';
           }, renderDelay);
-          bindOnce(item.content, transitionEnd, () => {
+          bindOnce(item.content, transitionend, () => {
             // reset
             item.content.style.maxHeight = item.content.style.paddingTop = item.content.style.paddingBottom = '';
             // safer resolve
@@ -270,14 +272,14 @@ export class Collapsible extends EventEmitter {
     const contents = this.host.querySelectorAll(this.config.selectors.content);
     const items: CollapsibleElement[] = [];
 
-    titles.forEach((title, i) => {
+    forEach(titles, (title, i) => {
       const content = contents[i] as HTMLElement;
 
       if (!content) return;
 
       const t = { title, content, active: true, busy: false } as CollapsibleElement;
 
-      if (this.config.useHeight)
+      if (this.config.animation)
         t.contentHeight = content.offsetHeight;
 
       items.push(t);

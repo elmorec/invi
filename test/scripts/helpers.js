@@ -8,10 +8,11 @@ function runQueue(args, behavior, expectation, timeout = 100) {
   return new Promise(resolve => {
     run();
     function run() {
-      let i = queue.shift();
+      const i = queue.shift();
       if (i !== undefined) {
-        behavior(i);
-        setTimeout(() => {
+        const result = behavior(i);
+        if (result && typeof result.then === 'function') result.then(resolve);
+        else setTimeout(() => {
           expectation(i);
           setTimeout(run, timeout);
         }, 0);

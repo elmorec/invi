@@ -22,7 +22,7 @@ describe('collapsible', function () {
   beforeEach(function () {
     const id = `collapsible-${++uid}`;
     this.id = id;
-    Collapsible.config({ classes: { active: this.id }, useHeight: false, indexes: [-1] });
+    Collapsible.config({ classes: { active: this.id }, animation: false, indexes: [-1] });
   });
 
   it('active', async function () {
@@ -42,7 +42,7 @@ describe('collapsible', function () {
   });
 
   it('index', function () {
-    const collapsible = new Collapsible(createDOM(), { useHeight: false, indexes: [1, 2] });
+    const collapsible = new Collapsible(createDOM(), { animation: false, indexes: [1, 2] });
 
     expect(collapsible.items[0].content.style.display).toBe('none');
     expect(collapsible.items[1].content.style.display).toBe('');
@@ -100,9 +100,9 @@ describe('collapsible', function () {
     });
   });
 
-  it('useHeight (transition)', async function () {
+  it('animation (transition)', async function () {
     const id = this.id;
-    const collapsible = new Collapsible(createDOM(), { accordion: true, useHeight: true });
+    const collapsible = new Collapsible(createDOM(), { accordion: true, animation: true });
 
     await sleep(500);
 

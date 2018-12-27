@@ -1,4 +1,4 @@
-import { delegate, EventEmitter, forEach, mergeDefault } from '../utils';
+import { delegate, EventEmitter, forEach, mergeDefaults } from './utils';
 
 interface TabStyle {
   /**
@@ -109,7 +109,7 @@ export class Tab extends EventEmitter {
    * Modify the default configuration
    */
   static config(config: TabConfig, pure?: boolean): TabConfig {
-    const ret = mergeDefault(defaults, config) as TabConfig;
+    const ret = mergeDefaults(defaults, config) as TabConfig;
 
     if (pure) return ret;
     else defaults = ret;

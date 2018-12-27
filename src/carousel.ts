@@ -1,4 +1,4 @@
-import { bindOnce, css, EventEmitter, forEach, isTouch, mergeDefault, transitionEnd } from '../utils';
+import { bindOnce, css, EventEmitter, forEach, isTouch, mergeDefaults, transitionend, xProperty } from './utils';
 
 interface CarouselStyle {
   /**
@@ -124,16 +124,18 @@ export class Carousel extends EventEmitter {
   private busy: boolean;
   private instance: any;
   private running: boolean;
+  private offEvents: () => void;
 
   /**
    * Modify the default configuration
    */
   static config(config: CarouselConfig, pure?: boolean): CarouselConfig {
-    const ret = mergeDefault(defaults, config) as CarouselConfig;
+    const ret = mergeDefaults(defaults, config) as CarouselConfig;
 
     if (ret.auto) ret.continuous = true;
     if (ret.threshold < 0 || ret.threshold > 1) ret.threshold = defaults.threshold;
     if (ret.resistance < 0 || ret.resistance > 1) ret.resistance = defaults.resistance;
+    if (!transitionend) ret.speed = 0;
 
     ret.resistance = 1 - ret.resistance;
 
@@ -153,7 +155,7 @@ export class Carousel extends EventEmitter {
     this.host = element;
 
     this.setup();
-    this.setupEvents();
+    this.offEvents = this.setupEvents();
 
     if (this.config.auto) this.start();
   }
@@ -187,7 +189,7 @@ export class Carousel extends EventEmitter {
     this.move(this.config.index, 0);
   }
 
-  private setupEvents(): void {
+  private setupEvents() {
     const self = this;
     const start = { x: 0, y: 0 }, delta = { x: 0, y: 0 };
     const continuous = self.config.continuous && self.size > 2;
@@ -233,9 +235,13 @@ export class Carousel extends EventEmitter {
           self.translate(self.current * self.step - offset, 0);
         }
       },
-      end() {
+      end(event) {
         const threshold = self.step * self.config.threshold;
         const speed = Math.ceil(self.config.speed / self.step * Math.abs(delta.x));
+
+        offEvents(<string>Events.move, ...(<string[]>Events.end));
+        event.preventDefault();
+
         if (delta.x > threshold) {
           if (continuous || self.current > 0)
             self.prev().then(() => {
@@ -255,10 +261,9 @@ export class Carousel extends EventEmitter {
         } else {
           self.translate(self.current * self.step, speed);
         }
-
-        offEvents(<string>Events.move, ...(<string[]>Events.end));
       }
     };
+    const listenerOptions = <any>{ passive: false };
 
     for (const key in Events) {
       const t = Events[key];
@@ -270,23 +275,26 @@ export class Carousel extends EventEmitter {
 
     bindEvents(<string>Events.start);
 
+    return function () {
+      offEvents(<string>Events.start, <string>Events.move, ...(<string[]>Events.end));
+    }
+
     function bindEvents(...types: string[]) {
-      types.forEach(t => self.container.addEventListener(t, events, { passive: false }));
+      types.forEach(t => self.container.addEventListener(t, events, listenerOptions));
     }
     function offEvents(...types: string[]) {
-      types.forEach(t => self.container.removeEventListener(t, events));
+      types.forEach(t => self.container.removeEventListener(t, events, listenerOptions));
     }
   }
 
   private translate(dist: number, speed: number): void {
-    const transform = `translate3d(${(-dist).toFixed(3)}px, 0, 0)`;
+    const transform = `translateX(${~~(-dist)}px)`;
     const transitionDuration = speed + 'ms';
 
     css(this.container, {
-      transform, transitionDuration,
-      webkitTransform: transform,
-      webkitTransitionDuration: transitionDuration
-    } as CSSStyleDeclaration);
+      [xProperty('transform')]: transform,
+      [xProperty('transitionDuration')]: transitionDuration,
+    } as any);
   }
 
   /**
@@ -328,7 +336,7 @@ export class Carousel extends EventEmitter {
 
     if (speed > 0)
       return new Promise(resolve => {
-        bindOnce(this.container, transitionEnd, () => {
+        bindOnce(this.container, transitionend, () => {
           cb.call(this, function () {
             resolve(true);
           })
@@ -426,6 +434,7 @@ export class Carousel extends EventEmitter {
    * Destroy instance, remove all listeners
    */
   destroy(): void {
+    this.offEvents();
     this.removeAllListeners();
     this.stop();
     this.host = this.items = this.container = null;

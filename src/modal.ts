@@ -1,4 +1,4 @@
-import { animationEnd, bindOnce, delegate, EventEmitter, mergeDefault } from '../utils';
+import { animationend, bindOnce, delegate, EventEmitter, mergeDefaults } from './utils';
 
 interface ModalAction {
   /**
@@ -174,7 +174,9 @@ export class Modal extends EventEmitter {
    * Modify the default configuration
    */
   static config(config: ModalConfig, pure?: boolean): ModalConfig {
-    const ret = mergeDefault(defaults, config);
+    const ret = mergeDefaults(defaults, config);
+
+    if (!animationend) ret.animation = false;
 
     if (pure) return ret;
     else defaults = ret;
@@ -280,7 +282,7 @@ export class Modal extends EventEmitter {
 
     return new Promise(resolve => {
       this.host.classList.add(this.config.classes.enter);
-      bindOnce(this.host, animationEnd, () => {
+      bindOnce(this.host, animationend, () => {
         this.host.classList.remove(this.config.classes.enter);
         this.state = STATE.OPENED;
         this.emit(Events.open);
@@ -308,7 +310,7 @@ export class Modal extends EventEmitter {
     }
 
     return new Promise(resolve => {
-      bindOnce(this.host, animationEnd, () => {
+      bindOnce(this.host, animationend, () => {
         this.config.host.removeChild(this.host);
         this.host.classList.remove(this.config.classes.leave);
         this.state = STATE.CLOSED;

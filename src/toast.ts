@@ -1,4 +1,4 @@
-import { animationEnd, bindOnce, mergeDefault, type } from '../utils';
+import { animationend, bindOnce, mergeDefaults, type } from './utils';
 
 interface ToastStyle {
   /**
@@ -101,11 +101,12 @@ let defaults: ToastConfig = {
  * ```
  */
 const toast = <Toast>function (config: ToastConfig = {}) {
-  return apply(mergeDefault(defaults, type(config) === 'object' ? config : { content: String(config) }));
+  return apply(mergeDefaults(defaults, type(config) === 'object' ? config : { content: String(config) }));
 };
 
 toast.config = function config(config: ToastConfig) {
-  defaults = mergeDefault(defaults, config) as ToastConfig;
+  defaults = mergeDefaults(defaults, config) as ToastConfig;
+  if (!animationend) defaults.animation = false;
 };
 
 function apply(config: ToastConfig): Promise<void> {
@@ -120,7 +121,7 @@ function apply(config: ToastConfig): Promise<void> {
   return new Promise<void>(resolve => {
     if (classes.enter && config.animation) {
       element.classList.add(classes.enter);
-      bindOnce(element, animationEnd, () => {
+      bindOnce(element, animationend, () => {
         element.classList.remove(classes.enter);
         delay();
       });
@@ -133,7 +134,7 @@ function apply(config: ToastConfig): Promise<void> {
     if (classes.leave && config.animation)
       return new Promise<void>(resolve => {
         element.classList.add(classes.leave);
-        bindOnce(element, animationEnd, () => {
+        bindOnce(element, animationend, () => {
           element.classList.remove(classes.leave);
           destroy();
           resolve();

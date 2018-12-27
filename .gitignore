@@ -2,7 +2,6 @@ node_modules/
 coverage/
 example/
 tmp/
-src/themes/
 dist/README.md
 dist/package.json
 dist/LICENSE
