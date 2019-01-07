@@ -7,7 +7,6 @@ module.exports = function (config) {
       './scripts/helpers.js',
       '../node_modules/zepto/dist/zepto.js',
       '../dist/index.js',
-      './scripts/utils.js',
       './scripts/components/toast.js',
       './scripts/components/modal.js',
       './scripts/components/tab.js',

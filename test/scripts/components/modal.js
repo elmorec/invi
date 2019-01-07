@@ -24,6 +24,7 @@ describe('modal', function () {
     await modal.open();
 
     expect($('.' + this.id)[0]).toBeDefined();
+    expect(document.body.style.overflow).toBe('hidden');
   });
 
   it('close', async function () {
@@ -33,6 +34,7 @@ describe('modal', function () {
     await modal.close();
 
     expect($('.' + this.id)[0]).not.toBeDefined();
+    expect(document.body.style.overflow).toBe('');
   });
 
   it('modal element', async function () {

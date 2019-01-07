@@ -99,7 +99,7 @@ interface ModalElements {
   footer?: HTMLElement;
 }
 
-enum STATE {
+enum State {
   'OPENED',
   'CLOSED',
   'OPENING',
@@ -164,7 +164,7 @@ let defaults: ModalConfig = {
  * ```
  */
 export class Modal extends EventEmitter {
-  private state = STATE.CLOSED;
+  private state = State.CLOSED;
   private host: HTMLElement;
   private config: ModalConfig;
 
@@ -264,18 +264,24 @@ export class Modal extends EventEmitter {
     this.el.content = content;
   }
 
+  private setOverflow(hidden?: boolean) {
+    this.config.host.style.overflow = hidden ? 'hidden' : '';
+  }
+
   /**
    * Open modal
    *
    * @returns promise
    */
   open(): Promise<void> {
-    if (this.state === STATE.OPENING || this.state === STATE.OPENED)
+    if (this.state === State.OPENING || this.state === State.OPENED)
       return Promise.reject();
+
+    this.setOverflow(true);
 
     if (!this.config.classes.enter || !this.config.animation) {
       this.config.host.appendChild(this.host);
-      this.state = STATE.OPENED;
+      this.state = State.OPENED;
       this.emit(Events.open);
       return Promise.resolve();
     }
@@ -284,11 +290,11 @@ export class Modal extends EventEmitter {
       this.host.classList.add(this.config.classes.enter);
       bindOnce(this.host, animationend, () => {
         this.host.classList.remove(this.config.classes.enter);
-        this.state = STATE.OPENED;
+        this.state = State.OPENED;
         this.emit(Events.open);
         resolve(this as any);
       });
-      this.state = STATE.OPENING;
+      this.state = State.OPENING;
       this.config.host.appendChild(this.host);
     });
   }
@@ -299,12 +305,14 @@ export class Modal extends EventEmitter {
    * @returns promise
    */
   close(): Promise<void> {
-    if (this.state === STATE.CLOSING || this.state === STATE.CLOSED)
+    if (this.state === State.CLOSING || this.state === State.CLOSED)
       return Promise.reject();
+
+    this.setOverflow();
 
     if (!this.config.classes.leave || !this.config.animation) {
       this.config.host.removeChild(this.host);
-      this.state = STATE.CLOSED;
+      this.state = State.CLOSED;
       this.emit(Events.close);
       return Promise.resolve();
     }
@@ -313,12 +321,12 @@ export class Modal extends EventEmitter {
       bindOnce(this.host, animationend, () => {
         this.config.host.removeChild(this.host);
         this.host.classList.remove(this.config.classes.leave);
-        this.state = STATE.CLOSED;
+        this.state = State.CLOSED;
         this.emit(Events.close);
         resolve(this as any);
       });
 
-      this.state = STATE.CLOSING;
+      this.state = State.CLOSING;
       this.host.classList.add(this.config.classes.leave);
     });
   }
