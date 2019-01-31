@@ -22,7 +22,7 @@ describe('collapsible', function () {
   beforeEach(function () {
     const id = `collapsible-${++uid}`;
     this.id = id;
-    Collapsible.config({ classes: { active: this.id }, animation: false, indexes: [-1] });
+    Collapsible.config({ classes: { titleActive: this.id, contentActive: this.id }, animation: false, indexes: [-1] });
   });
 
   it('active', async function () {

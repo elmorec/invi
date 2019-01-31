@@ -2,14 +2,18 @@ import { bindOnce, delegate, EventEmitter, forEach, mergeDefaults, transitionend
 
 interface CollapsibleStyle {
   /**
-   * Class name which applied to the actived element
+   * Class name which applied to the actived title
    */
-  active: string;
+  titleActive: string;
+  /**
+   * Class name which applied to the actived content
+   */
+  contentActive: string;
 };
 
 interface CollapsibleConfig {
   /**
-   * CSS selectors for quering title and content element
+   * CSS selectors for quering title and content
    */
   selectors?: {
     title?: string;
@@ -41,11 +45,11 @@ interface CollapsibleElement { title: HTMLElement; content: HTMLElement; content
 
 interface CollapsibleSnapshot {
   /**
-   * current collapsed/expanded title element
+   * current collapsed/expanded title
    */
   title: HTMLElement;
   /**
-   * current collapsed/expanded content element
+   * current collapsed/expanded content
    */
   content: HTMLElement;
   /**
@@ -172,7 +176,8 @@ export class Collapsible extends EventEmitter {
     if (!item.active || item.busy) return Promise.resolve({ title: item.title, content: item.content, index: index });
 
     item.active = false;
-    classes.active && [item.title, item.content].forEach(el => el.classList.remove(classes.active));
+    classes.titleActive && item.title.classList.remove(classes.titleActive);
+    classes.contentActive && item.content.classList.remove(classes.contentActive);
 
     if (directly) {
       item.content.style.display = 'none';
@@ -221,7 +226,8 @@ export class Collapsible extends EventEmitter {
     if (item.active || item.busy) return Promise.resolve({ title: item.title, content: item.content, index: index });
 
     item.active = true;
-    classes.active && [item.title, item.content].forEach(el => el.classList.add(classes.active));
+    classes.titleActive && item.title.classList.add(classes.titleActive);
+    classes.contentActive && item.content.classList.add(classes.contentActive);
 
     if (directly) {
       item.content.style.display = '';

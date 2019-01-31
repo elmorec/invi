@@ -32,7 +32,7 @@ interface TabStyle {
 }
 interface TabConfig {
     /**
-     * CSS selectors for quering tab and content element
+     * CSS selectors for quering tab and content
      */
     selectors?: {
         tab?: string;
@@ -53,11 +53,11 @@ interface TabConfig {
 }
 interface ActivatedTabSnapshot {
     /**
-     * current actived tab element
+     * current actived tab
      */
     tab: HTMLElement;
     /**
-     * current actived content element
+     * current actived content
      */
     content: HTMLElement;
     /**
@@ -99,8 +99,8 @@ interface ActivatedTabSnapshot {
  * });
  *
  * tab.on('switch', (
- *   tabElement, // current tab element
- *   contentElement, // current content element
+ *   tabElement, // current tab
+ *   contentElement, // current content
  *   current, // current index
  *   previous // previous index
  * ) => {})
@@ -127,7 +127,7 @@ export declare class Tab extends EventEmitter {
      * Switch to the specified tab
      *
      * @param index -
-     * @param force - silence switch (synchronize the operation)
+     * @param force -
      * @returns return a promise if force is negative
      */
     switch(index: number, force?: boolean): Promise<ActivatedTabSnapshot> | void;

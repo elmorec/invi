@@ -5,6 +5,10 @@ interface CarouselStyle {
    * Class name which applied to current slide
    */
   active: string;
+  /**
+   * Class name which applied to current indicator
+   */
+  indicatorActive?: string;
 }
 
 interface CarouselConfig {
@@ -13,6 +17,7 @@ interface CarouselConfig {
    */
   selectors?: {
     item: string;
+    indicator?: string;
   };
   /**
    * Class names
@@ -118,6 +123,7 @@ export class Carousel extends EventEmitter {
   private config: CarouselConfig;
   private container: HTMLElement;
   private items: CarouselElement[] = [];
+  private indicators: NodeListOf<Element>;
   private size: number;
   private step: number;
   private current = 0;
@@ -137,6 +143,11 @@ export class Carousel extends EventEmitter {
     if (ret.resistance < 0 || ret.resistance > 1) ret.resistance = defaults.resistance;
     if (!transitionend) ret.speed = 0;
 
+    if (!ret.selectors.indicator || !ret.classes.indicatorActive) {
+      delete ret.selectors.indicator;
+      delete ret.classes.indicatorActive;
+    }
+
     ret.resistance = 1 - ret.resistance;
 
     if (pure) return ret;
@@ -153,6 +164,11 @@ export class Carousel extends EventEmitter {
     super();
     this.config = Carousel.config(config, true);
     this.host = element;
+
+    if (this.config.selectors.indicator) {
+      const indicators = document.querySelectorAll(this.config.selectors.indicator);
+      if (indicators) this.indicators = indicators;
+    }
 
     this.setup();
     this.offEvents = this.setupEvents();
@@ -231,16 +247,14 @@ export class Carousel extends EventEmitter {
           } else if (offset < -limit) {
             offset = -limit;
           }
-          event.preventDefault();
           self.translate(self.current * self.step - offset, 0);
         }
       },
-      end(event) {
+      end() {
         const threshold = self.step * self.config.threshold;
         const speed = Math.ceil(self.config.speed / self.step * Math.abs(delta.x));
 
         offEvents(<string>Events.move, ...(<string[]>Events.end));
-        event.preventDefault();
 
         if (delta.x > threshold) {
           if (continuous || self.current > 0)
@@ -327,9 +341,18 @@ export class Carousel extends EventEmitter {
       } else next = to;
     } else next = to;
 
+    // the origin index of the next slide
+    const itemNext = this.items[next].index;
+
+    // active indicator if possible
+    if (this.indicators) {
+      this.indicators[current] && this.indicators[current].classList.remove(this.config.classes.indicatorActive);
+      this.indicators[itemNext] && this.indicators[itemNext].classList.add(this.config.classes.indicatorActive);
+    }
+
     // emit ongoing event, pass current, next index
     setTimeout(() => {
-      this.emit(<string>Events.slide, current, this.items[next].index);
+      this.emit(<string>Events.slide, current, itemNext);
     }, 0);
 
     this.translate(to * this.step, speed);

@@ -26,13 +26,17 @@ class EventEmitter {
 }
 interface CollapsibleStyle {
     /**
-     * Class name which applied to the actived element
+     * Class name which applied to the actived title
      */
-    active: string;
+    titleActive: string;
+    /**
+     * Class name which applied to the actived content
+     */
+    contentActive: string;
 }
 interface CollapsibleConfig {
     /**
-     * CSS selectors for quering title and content element
+     * CSS selectors for quering title and content
      */
     selectors?: {
         title?: string;
@@ -61,11 +65,11 @@ interface CollapsibleConfig {
 }
 interface CollapsibleSnapshot {
     /**
-     * current collapsed/expanded title element
+     * current collapsed/expanded title
      */
     title: HTMLElement;
     /**
-     * current collapsed/expanded content element
+     * current collapsed/expanded content
      */
     content: HTMLElement;
     /**

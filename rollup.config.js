@@ -32,5 +32,6 @@ export default Object.keys(entries).map(name => ({
     file: `dist/${name}.js`,
     format: 'umd'
   },
+  sourceMap: isDev,
   ...config
 }));

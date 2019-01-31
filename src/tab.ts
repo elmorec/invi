@@ -9,7 +9,7 @@ interface TabStyle {
 
 interface TabConfig {
   /**
-   * CSS selectors for quering tab and content element
+   * CSS selectors for quering tab and content
    */
   selectors?: {
     tab?: string;
@@ -31,11 +31,11 @@ interface TabConfig {
 
 interface ActivatedTabSnapshot {
   /**
-   * current actived tab element
+   * current actived tab
    */
   tab: HTMLElement;
   /**
-   * current actived content element
+   * current actived content
    */
   content: HTMLElement;
   /**
@@ -91,8 +91,8 @@ let defaults: TabConfig = {
  * });
  *
  * tab.on('switch', (
- *   tabElement, // current tab element
- *   contentElement, // current content element
+ *   tabElement, // current tab
+ *   contentElement, // current content
  *   current, // current index
  *   previous // previous index
  * ) => {})
@@ -139,7 +139,7 @@ export class Tab extends EventEmitter {
    * Switch to the specified tab
    *
    * @param index -
-   * @param force - silence switch (synchronize the operation)
+   * @param force -
    * @returns return a promise if force is negative
    */
   switch(index: number, force?: boolean): Promise<ActivatedTabSnapshot> | void {
@@ -153,14 +153,12 @@ export class Tab extends EventEmitter {
     const content = this.contents[index] as HTMLElement;
 
     if (classes.active) {
-      [currentTab, currentContent].forEach(el => el.classList.remove(classes.active));
-      [tab, content].forEach(el => el.classList.add(classes.active));
+      currentTab.classList.remove(classes.active);
+      tab.classList.add(classes.active);
     }
     currentContent.style.display = 'none';
     content.style.display = '';
     this.current = index;
-
-    if (force) return;
 
     return new Promise(resolve => {
       setTimeout(() => {

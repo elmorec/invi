@@ -28,11 +28,9 @@ describe('tab', function () {
     return runQueue([1, 2, 1, 0], i => tab.tabs[i].click(), function (i) {
       const idxs = [0, 1, 2];
       expect(tab.tabs[i].classList.contains(id)).toBeTruthy();
-      expect(tab.contents[i].classList.contains(id)).toBeTruthy();
       idxs.splice(idxs.indexOf(i), 1);
       idxs.forEach(i => {
         expect(tab.tabs[i].classList.contains(id)).toBeFalsy();
-        expect(tab.contents[i].classList.contains(id)).toBeFalsy();
       });
     });
   });
@@ -57,15 +55,17 @@ describe('tab', function () {
 
   it('emit', function (done) {
     const tab = new Tab(createDOM());
-    tab.tabs[2].click();
 
-    tab.on('switch', (tabElement, contentElement, current, previous) => {
-      expect(tabElement).toEqual(tab.tabs[2]);
-      expect(contentElement).toEqual(tab.contents[2]);
-      expect(current).toBe(2);
-      expect(previous).toBe(0);
-      done();
-    });
+    setTimeout(() => {
+      tab.tabs[2].click();
+      tab.on('switch', (tabElement, contentElement, current, previous) => {
+        expect(tabElement).toEqual(tab.tabs[2]);
+        expect(contentElement).toEqual(tab.contents[2]);
+        expect(current).toBe(2);
+        expect(previous).toBe(0);
+        done();
+      });
+    }, 100);
   });
 
   it('custom dom structure', function () {

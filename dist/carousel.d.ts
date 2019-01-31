@@ -29,6 +29,10 @@ interface CarouselStyle {
      * Class name which applied to current slide
      */
     active: string;
+    /**
+     * Class name which applied to current indicator
+     */
+    indicatorActive?: string;
 }
 interface CarouselConfig {
     /**
@@ -36,6 +40,7 @@ interface CarouselConfig {
      */
     selectors?: {
         item: string;
+        indicator?: string;
     };
     /**
      * Class names
@@ -110,6 +115,7 @@ export declare class Carousel extends EventEmitter {
     private config;
     private container;
     private items;
+    private indicators;
     private size;
     private step;
     private current;
