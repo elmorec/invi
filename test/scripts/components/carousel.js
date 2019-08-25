@@ -14,27 +14,29 @@ describe('Carousel', function () {
 
   beforeEach(function () {
     const id = `carousel-${++uid}`;
+
+    Carousel.config({ classes: { active: id } });
+
     this.id = id;
-    Carousel.config({ classes: { active: this.id } });
+    this.startAt = Date.now()
+    this.duration = function () {
+      return ~~((Date.now() - this.startAt) / 100) * 100
+    }
   });
 
   it('speed', async function () {
     const carousel = new Carousel(createDOM(), { speed: 1000 });
-    const id = this.id;
 
-    let t = Date.now();
     await carousel.next();
-    expect((Date.now() - t) / 100).toBeCloseTo(10, 0);
+    expect(this.duration()).toBeCloseTo(1000);
   });
 
   it('delay', async function (done) {
     const carousel = new Carousel(createDOM(), { delay: 1000, auto: true, speed: 100 });
-    const id = this.id;
 
-    let t = Date.now();
     await sleep(100);
-    carousel.on('slideChange', function () {
-      expect((Date.now() - t) / 100).toBeCloseTo(11, 0);
+    carousel.on('slideChange', () => {
+      expect(this.duration()).toBeCloseTo(1100);
       carousel.destroy();
       done();
     })
@@ -42,16 +44,13 @@ describe('Carousel', function () {
 
   it('index', function () {
     const carousel = new Carousel(createDOM(), { index: 1 });
-    const id = this.id;
 
-    let t = Date.now();
     expect(carousel.host.querySelector('li[class^="carousel-"]').innerHTML).toBe('slide 2');
     expect(carousel.current).toBe(1);
   });
 
   it('continuous', async function () {
     const carousel = new Carousel(createDOM(), { continuous: true });
-    const id = this.id;
 
     expect(carousel.host.querySelector('li[class^="carousel-"]').innerHTML).toBe('slide 1');
     await carousel.next();
@@ -76,10 +75,8 @@ describe('Carousel', function () {
           item: '[data-slide]',
         }, speed: 1000
       });
-    const id = this.id;
 
-    let t = Date.now();
     await carousel.next();
-    expect((Date.now() - t) / 100).toBeCloseTo(10, 0);
+    expect(this.duration()).toBeCloseTo(1000);
   });
 });

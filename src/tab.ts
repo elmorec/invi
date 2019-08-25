@@ -1,56 +1,65 @@
-import { delegate, EventEmitter, forEach, mergeDefaults } from './utils';
+import { delegate, EventEmitter, forEach, mergeDefaults, redraw } from './utils';
 
 interface TabStyle {
-  /**
-   * Class name which applied to current tab
-   */
+  /** CSS class name of current tab */
   active?: string;
 }
 
 interface TabConfig {
   /**
-   * CSS selectors for quering tab and content
+   * CSS selectors for quering tab and content elements
    */
   selectors?: {
+    /**
+     * Tab element selector
+     *
+     * @default `a`
+     */
     tab?: string;
+
+    /**
+     * Content element selector
+     *
+     * @default `article`
+     */
     content?: string;
   }
   /**
-   *  Index of tab which need to be actived after initialization
+   *  Index of tab need to be actived after initialization
    */
   index?: number;
-  /**
-   * Class names
-   */
+
+  /** CSS class name */
   classes?: TabStyle;
+
   /**
-   * Event type
+   * The type of event that is bound on the tab to trigger switch
+    *
+    * @default `click`
    */
   event?: string;
 }
 
 interface ActivatedTabSnapshot {
-  /**
-   * current actived tab
-   */
+  /** Current tab element */
   tab: HTMLElement;
-  /**
-   * current actived content
-   */
+
+  /** Current content element */
   content: HTMLElement;
-  /**
-   * current index
-   */
+
+  /** current tab index */
   current: number;
-  /**
-   * previous index
-   */
+
+  /** previous tab index */
   previous: number;
 }
 
-const Events = {
+/** @ignore */
+const EVENTS = {
   switch: 'switch'
 }
+
+/** @ignore */
 let defaults: TabConfig = {
   selectors: {
     tab: 'a',
@@ -62,7 +71,7 @@ let defaults: TabConfig = {
 }
 
 /**
- * Tab
+ * ## Tab
  *
  * ### Example
  *
@@ -80,30 +89,17 @@ let defaults: TabConfig = {
  * ```
  *
  * ```javascript
- * const tab = new Tab(document.getElementById('tab'), {
- *   classes: { active: 'active' },
- *   selectors: {
- *     tab: 'a', // by default
- *     content: 'article' // by default
- *   },
- *   event: 'click' // by default,
- *   index: 1,
- * });
+ * const tab = new Tab(document.getElementById('tab'));
  *
- * tab.on('switch', (
- *   tabElement, // current tab
- *   contentElement, // current content
- *   current, // current index
- *   previous // previous index
- * ) => {})
+ * tab.on('switch', ({title, content, current, previous}) => {})
  * ```
  */
 export class Tab extends EventEmitter {
-  host: HTMLElement;
-  private config: TabConfig;
-  private current = 0;
-  private tabs: HTMLElement[] = [];
-  private contents: HTMLElement[] = [];
+  private _config: TabConfig;
+  private _current: number;
+  private _tabs: HTMLElement[] = [];
+  private _contents: HTMLElement[] = [];
+  private _removeDelegate: any;
 
   /**
    * Modify the default configuration
@@ -116,87 +112,81 @@ export class Tab extends EventEmitter {
   }
 
   /**
-   * Cconstructor
-   *
-   * @param element -
-   * @param config - TabConfig
+   * @param host container element
+   * @param config
    */
-  constructor(element: HTMLElement, config: TabConfig = {}) {
+  constructor(public host: HTMLElement, config?: TabConfig) {
     super();
-    this.config = Tab.config(config, true);
-    this.host = element;
+    this._config = Tab.config(config || {}, true);
 
-    if (this.config.index) this.current = this.config.index;
-    this.refresh();
+    this.refresh(this._config.index);
 
-    delegate.bind(element)(this.config.event, this.config.selectors.tab, (target: HTMLElement) => {
-      const index = this.tabs.indexOf(target);
+    this._removeDelegate = delegate.bind(this.host)(this._config.event, this._config.selectors.tab, (target: HTMLElement) => {
+      const index = this._tabs.indexOf(target);
       if (~index) this.switch(index);
     });
   }
 
   /**
-   * Switch to the specified tab
+   * Switch to a specified index
    *
-   * @param index -
-   * @param force -
-   * @returns return a promise if force is negative
+   * @param index
    */
-  switch(index: number, force?: boolean): Promise<ActivatedTabSnapshot> | void {
-    if (index === this.current && !force || !this.tabs[index]) return;
+  switch(index: number) {
+    if (index === this._current || !this._tabs[index]) return;
 
-    const current = this.current;
-    const classes = this.config.classes;
-    const currentTab = this.tabs[current];
-    const currentContent = this.contents[current] as HTMLElement;
-    const tab = this.tabs[index];
-    const content = this.contents[index] as HTMLElement;
+    const current = this._current;
+    const classes = this._config.classes;
+    const currentTab = this._tabs[current];
+    const currentContent = this._contents[current];
+    const tab = this._tabs[index];
+    const content = this._contents[index];
 
     if (classes.active) {
-      currentTab.classList.remove(classes.active);
+      currentTab && currentTab.classList.remove(classes.active);
       tab.classList.add(classes.active);
     }
-    currentContent.style.display = 'none';
+    if (currentContent)
+      currentContent.style.display = 'none';
     content.style.display = '';
-    this.current = index;
+    redraw(content);
+    this._current = index;
 
-    return new Promise(resolve => {
-      setTimeout(() => {
-        this.emit(Events.switch, tab, content, index, current);
-        resolve({
-          tab, content,
-          current: index,
-          previous: current
-        });
-      }, 0);
+    this.emit<ActivatedTabSnapshot>(EVENTS.switch, {
+      tab, content,
+      current: index,
+      previous: current
     });
   }
 
   /**
-   * Refresh tab list
+   * Refresh tab list, and switch to a specified index
+   *
+   * @param index
    */
-  refresh(): void {
-    const tabs = this.host.querySelectorAll(this.config.selectors.tab);
-    const contents = this.host.querySelectorAll(this.config.selectors.content);
+  refresh(index: number) {
+    const tabs = this.host.querySelectorAll(this._config.selectors.tab) as NodeListOf<HTMLElement>;
+    const contents = this.host.querySelectorAll(this._config.selectors.content) as NodeListOf<HTMLElement>;
 
     forEach(tabs, (tab: HTMLElement, i) => {
-      const content = contents[i] as HTMLElement;
+      const content = contents[i];
 
       if (content) {
         content.style.display = 'none';
-        this.tabs.push(tab);
-        this.contents.push(content)
+        this._tabs.push(tab);
+        this._contents.push(content)
       }
     });
 
-    this.switch(this.current, true);
+    this.switch(index);
   }
 
   /**
-   * Destroy instance, remove all listeners
+   * Destroy tab instance, remove all listeners
    */
-  destroy(): void {
+  destroy() {
+    this._removeDelegate();
     this.removeAllListeners();
-    this.host = this.tabs = this.contents = this.config = null;
+    this.host = this._tabs = this._contents = this._config = null;
   }
 }

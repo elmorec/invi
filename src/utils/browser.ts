@@ -2,11 +2,6 @@ import { upperFirst, kebabCase, map } from './functions';
 
 /**
  * Find closest elements to the element
- *
- * @param element
- * @param selector
- * @param context - range
- * @returns return an array
  */
 export function closest(element: any, selector: string, context: Element = document.body): Element[] {
   const out: Element[] = [];
@@ -30,19 +25,25 @@ export function closest(element: any, selector: string, context: Element = docum
  * delegate.bind(document)('click', 'a', function(a, ev) {
  * });
  * ```
- *
- * @param eventType
- * @param {string} selector
- * @param {(el: Element, event: Event) => void} callback
  */
-export function delegate(this: Element, eventType: string, selector: string, callback: (el: Element, event: Event) => void): void {
+export function delegate(
+  this: Element,
+  eventType: string,
+  selector: string,
+  callback: (el: Element, event: Event) => void
+): () => void {
   const element = this;
-
-  element.addEventListener(eventType, (event: Event) => {
+  const handler = (event: Event) => {
     const match = closest(event.target, selector, element)[0];
 
     if (match) callback(match, event);
-  });
+  };
+
+  element.addEventListener(eventType, handler);
+
+  return function () {
+    element.removeEventListener(eventType, handler);
+  }
 }
 
 export function isDocument(obj: any): boolean { return obj != null && obj.nodeType == obj.DOCUMENT_NODE }
@@ -53,6 +54,16 @@ export function bindOnce(element: Element, eventType: string, callback: () => vo
     element.removeEventListener(eventType, handler, options as any);
   };
   element.addEventListener(eventType, handler, options);
+}
+
+export function bindTransition(element: Element, propertyName: string, callback: () => void): void {
+  const handler = function (e: TransitionEvent) {
+    if (e.propertyName === propertyName) {
+      callback();
+      element.removeEventListener(transitionend, handler);
+    }
+  };
+  element.addEventListener(transitionend, handler);
 }
 
 export function css(element: HTMLElement, styles: CSSStyleDeclaration): void {
@@ -67,8 +78,8 @@ const properties: {
 
 /**
  *
- * @param key - w3c standard style property
- * @param css - return css style property (kebab case)
+ * @param key w3c standard style property
+ * @param css return css style property (kebab case)
  * @returns property
  */
 export function xProperty(key: string, css?: boolean): string {

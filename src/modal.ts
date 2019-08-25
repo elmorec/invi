@@ -16,7 +16,7 @@ interface ModalAction {
   /**
    * `href` attribute
    */
-  redirect?: string;
+  href?: string;
   /**
    * `target` attribute
    */
@@ -67,9 +67,6 @@ interface ModalConfig {
    * Close modal when clicking on backdrop
    */
   autoclose?: boolean;
-  /**
-   * Class names
-   */
   classes?: ModalStyle;
   /**
    * Event type
@@ -99,18 +96,25 @@ interface ModalElements {
   footer?: HTMLElement;
 }
 
+/**
+ * @ignore
+ */
 enum State {
   'OPENED',
   'CLOSED',
   'OPENING',
   'CLOSING'
 }
+
+/** @ignore */
 const Events = {
   open: 'open',
   close: 'close',
   cancel: 'cancel',
   confirm: 'confirm',
 }
+
+/** @ignore */
 let defaults: ModalConfig = {
   host: document.body,
   title: '',
@@ -122,7 +126,7 @@ let defaults: ModalConfig = {
 }
 
 /**
- * Modal
+ * ## Modal
  *
  * ### Example
  *
@@ -142,7 +146,7 @@ let defaults: ModalConfig = {
  *     { type: 'cancel', label: 'cancel' },
  *     { type: 'confirm', label: 'ok' },
  *     {
- *       label: 'search it',
+ *       label: 'search',
  *       redirect: 'https://www.google.com/search?q=',
  *       target: '_blank',
  *     },
@@ -210,8 +214,6 @@ export class Modal extends EventEmitter {
           break;
       }
     });
-
-    return this;
   }
 
   private render() {
@@ -244,7 +246,7 @@ export class Modal extends EventEmitter {
         a.innerHTML = action.label;
         if (action.class) a.className = action.class;
         if (action.type) a.dataset.action = action.type;
-        if (action.redirect) a.href = action.redirect;
+        if (action.href) a.href = action.href;
         if (action.target) a.target = action.target;
         if (action.callback) a.addEventListener(config.event, action.callback.bind(this));
 

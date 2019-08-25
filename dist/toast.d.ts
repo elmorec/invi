@@ -4,11 +4,11 @@ interface ToastStyle {
      */
     host: string;
     /**
-     * Class name applied to container when it is attached to DOM
+     * Class name applied to container when being attached to DOM
      */
     enter: string;
     /**
-     * Class name applied to container when it is detached from DOM
+     * Class name applied to container when being detached from DOM
      */
     leave: string;
 }
@@ -19,18 +19,22 @@ interface ToastConfig {
     content?: string;
     /**
      * Apply animation, require `classes.enter` and `classes.leave`
+     * @default true
      */
     animation?: boolean;
     /**
      * Toast duration
+     * @default 1000
      */
     duration?: number;
     /**
      * Uses `innerHTML` to apply content instead of `innerText`
+     * @default false
      */
     unsafe?: boolean;
     /**
      * Mount element
+     * @default document.body
      */
     host?: HTMLElement;
     /**
@@ -38,18 +42,8 @@ interface ToastConfig {
      */
     classes?: ToastStyle;
 }
-interface Toast {
-    /**
-     * Modify the default configuration
-     */
-    config(config: ToastConfig): void;
-    /**
-     * Create a toast and display it
-     */
-    (arg: ToastConfig | string): Promise<void>;
-}
 /**
- * Toast
+ * ## Toast
  *
  * ### Example
  *
@@ -70,21 +64,26 @@ interface Toast {
  *
  * ```javascript
  * toast('content').then(() => {});
+ * toast('content', {}).then(() => {});
+ * toast({content: 'content'}).then(() => {});
  * ```
  *
- * Custom configuration
+ * Full configuration
  *
  * ```javascript
  * toast({
- *   content: 'content';
- *   animation: true; // by default
- *   duration: 1000; // by default
- *   backdrop: false; // by default
- *   unsafe: false; // by default
- *   center: false; // by default
- *   host: document.body; // by default
+ *   content: 'content',
+ *   animation: true,
+ *   duration: 1000,
+ *   backdrop: false,
+ *   unsafe: false,
+ *   center: false,
+ *   host: document.body,
  * });
  * ```
  */
-declare const toast: Toast;
-export { toast };
+declare function toast(content: string | ToastConfig, config?: ToastConfig): Promise<void>;
+declare namespace toast {
+    var config: (config: ToastConfig) => void;
+}
+export default toast;

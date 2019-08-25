@@ -17,20 +17,21 @@ describe('tab', function () {
 
   beforeEach(function () {
     const id = `tab-${++uid}`;
+    Tab.config({ classes: { active: id } });
+
     this.id = id;
-    Tab.config({ classes: { active: this.id } });
   });
 
   it('active', function () {
     const tab = new Tab(createDOM());
     const id = this.id;
 
-    return runQueue([1, 2, 1, 0], i => tab.tabs[i].click(), function (i) {
+    return runQueue([1, 2, 1, 0], i => tab._tabs[i].click(), function (i) {
       const idxs = [0, 1, 2];
-      expect(tab.tabs[i].classList.contains(id)).toBeTruthy();
+      expect(tab._tabs[i].classList.contains(id)).toBeTruthy();
       idxs.splice(idxs.indexOf(i), 1);
       idxs.forEach(i => {
-        expect(tab.tabs[i].classList.contains(id)).toBeFalsy();
+        expect(tab._tabs[i].classList.contains(id)).toBeFalsy();
       });
     });
   });
@@ -38,34 +39,32 @@ describe('tab', function () {
   it('index', function () {
     const tab = new Tab(createDOM(), { index: 2 });
 
-    expect(tab.contents[0].style.display).toBe('none');
-    expect(tab.contents[1].style.display).toBe('none');
-    expect(tab.contents[2].style.display).toBe('');
+    expect(tab._contents[0].style.display).toBe('none');
+    expect(tab._contents[1].style.display).toBe('none');
+    expect(tab._contents[2].style.display).toBe('');
   });
 
   it('event', function () {
     const tab = new Tab(createDOM(), { event: 'touchstart' });
 
-    $(tab.tabs[2]).trigger('touchstart');
+    $(tab._tabs[2]).trigger('touchstart');
 
-    expect(tab.contents[0].style.display).toBe('none');
-    expect(tab.contents[1].style.display).toBe('none');
-    expect(tab.contents[2].style.display).toBe('');
+    expect(tab._contents[0].style.display).toBe('none');
+    expect(tab._contents[1].style.display).toBe('none');
+    expect(tab._contents[2].style.display).toBe('');
   });
 
   it('emit', function (done) {
     const tab = new Tab(createDOM());
 
-    setTimeout(() => {
-      tab.tabs[2].click();
-      tab.on('switch', (tabElement, contentElement, current, previous) => {
-        expect(tabElement).toEqual(tab.tabs[2]);
-        expect(contentElement).toEqual(tab.contents[2]);
-        expect(current).toBe(2);
-        expect(previous).toBe(0);
-        done();
-      });
-    }, 100);
+    tab.on('switch', function ({ tab: _tab, content, current, previous }) {
+      expect(_tab).toBe(tab._tabs[2]);
+      expect(content).toBe(tab._contents[2])
+      expect(current).toBe(2);
+      expect(previous).toBe(0);
+      done();
+    });
+    tab._tabs[2].click();
   });
 
   it('custom dom structure', function () {
@@ -86,13 +85,13 @@ describe('tab', function () {
         }
       });
 
-    expect(tab.tabs.length).toBe(2);
-    expect(tab.contents.length).toBe(2);
-    expect(tab.contents[0].style.display).toBe('');
-    expect(tab.contents[1].style.display).toBe('none');
+    expect(tab._tabs.length).toBe(2);
+    expect(tab._contents.length).toBe(2);
+    expect(tab._contents[0].style.display).toBe('');
+    expect(tab._contents[1].style.display).toBe('none');
 
-    tab.tabs[1].click();
-    expect(tab.contents[0].style.display).toBe('none');
-    expect(tab.contents[1].style.display).toBe('');
+    tab._tabs[1].click();
+    expect(tab._contents[0].style.display).toBe('none');
+    expect(tab._contents[1].style.display).toBe('');
   });
 });

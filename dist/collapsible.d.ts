@@ -1,84 +1,62 @@
-class EventEmitter {
-    private events;
-    /**
-     * Register an event handler for the given type.
-     *
-     * @param type - Type of event to listen for, or `"*"` for all events
-     * @param handler - Function to call in response to given event
-     */
-    on(type: string, handler: (event?: any) => void): void;
-    /**
-     * Remove an event handler for the given type.
-     *
-     * @param type - Type of event to unregister `handler` from, or `"*"`
-     * @param handler - Handler function to remove
-     */
-    off(type: string, handler: (event?: any) => void): void;
-    removeAllListeners(): void;
-    /**
-     * Invoke all handlers for the given type.
-     * If present, `"*"` handlers are invoked after type-matched handlers.
-     *
-     * @param type - The event type to invoke
-     * @param evt - Any value (object is recommended and powerful), passed to each handler
-     */
-    emit(type: string, ...evt: any[]): void;
-}
+import { EventEmitter } from './utils';
 interface CollapsibleStyle {
-    /**
-     * Class name which applied to the actived title
-     */
+    /** CSS class name of the title element when expanded */
     titleActive: string;
-    /**
-     * Class name which applied to the actived content
-     */
+    /** CSS class name of the content element when expanded */
     contentActive: string;
 }
 interface CollapsibleConfig {
     /**
-     * CSS selectors for quering title and content
+     * CSS selector for querying title and content elements
      */
     selectors?: {
+        /**
+         * Title element selector
+         *
+         * @default `header`
+         */
         title?: string;
+        /**
+         * Content element selector
+         *
+         * @default `article`
+         */
         content?: string;
     };
-    /**
-     * Class names
-     */
+    /** CSS class name */
     classes?: CollapsibleStyle;
     /**
-     * Event type
+     * The type of event that is bound on the title to trigger expand/collapse
+      *
+      * @default `click`
      */
     event?: string;
     /**
      * Accordion mode
+     *
+     * @default false
      */
     accordion?: boolean;
     /**
-     * Apply height change to DOM for animation propose
+     * Whether to use animation
+     *
+     * @default true
      */
     animation?: boolean;
     /**
-     *  Indexs of items which need to be expanded after initialization
+     * Animation duration in ms
+     *
+     * @default 300
      */
-    indexes?: number[];
-}
-interface CollapsibleSnapshot {
+    duration?: number;
     /**
-     * current collapsed/expanded title
+     * Items that need to be expanded after initialization,
+     * all are collapsed by default
      */
-    title: HTMLElement;
-    /**
-     * current collapsed/expanded content
-     */
-    content: HTMLElement;
-    /**
-     * index
-     */
-    index: number;
+    index?: number | number[];
 }
 /**
- * Collapsible
+ * ## Collapsible
  *
  * ### Example
  *
@@ -100,64 +78,56 @@ interface CollapsibleSnapshot {
  * ```
  *
  * ```javascript
- * const collapsible = new Collapsible(document.getElementById('collapse'), {
- *   selectors: {
- *     title: 'header', // by default
- *     content: 'article' // by default
- *   },
- *   event: 'click', // by default
- *   useHeight: true, // by default
- *   classes: { active: 'active' },
- *   accordion: true,
- *   indexes: [1],
- * });
- * collapsible.on('collapse', (title, content, index) => {});
- * collapsible.on('expand', (title, content, index) => {});
+ * const collapsible = new Collapsible(
+ *   document.getElementById('collapse')
+ * );
+ *
+ * collapsible.on('collapse', ({title, content, index}) => {});
+ * collapsible.on('expand', ({title, content, index}) => {});
  * ```
  */
 export declare class Collapsible extends EventEmitter {
     host: HTMLElement;
-    private config;
-    private items;
+    private _config;
+    private _items;
+    private _removeDelegate;
     /**
      * Modify the default configuration
      */
     static config(config: CollapsibleConfig, pure?: boolean): CollapsibleConfig;
     /**
-     * Cconstructor
-     *
-     * @param element -
-     * @param config - CollapsibleConfig
+     * @param host container element
+     * @param config
      */
-    constructor(element: HTMLElement, config?: CollapsibleConfig);
+    constructor(host: HTMLElement, config?: CollapsibleConfig);
     /**
-     * Toggle display the specified item
-     *
-     * @param index -
-     * @returns promise
-     */
-    toggle(index: number): Promise<CollapsibleSnapshot>;
-    /**
-     * Collapse the specified item
-     *
-     * @param index -
-     * @param directly - collapse directly without animation (synchronize the operation)
-     * @returns return a promise if directly is negative
-     */
-    collapse(index: number, directly?: boolean): Promise<CollapsibleSnapshot> | void;
-    /**
-     * Expand the specified item
+     * Toggle item
      *
      * @param index
-     * @param directly - expand directly without animation (synchronize the operation)
-     * @returns return a promise if directly is negative
+     * @param direct toggle directly without transition
+     * @returns return promise if animation is enabled
      */
-    expand(index: number, directly?: boolean): Promise<CollapsibleSnapshot> | void;
+    toggle(index: number | number[], direct?: boolean): void | Promise<void>;
     /**
-     * Refresh list
+     * Collapse item
      *
-     * @param reset - rest status using initial configuration
-     * @returns promise
+     * @param index
+     * @param direct collapse directly without animation
+     * @returns return promise if animation is enabled
+     */
+    collapse(index: number | number[], direct?: boolean): void | Promise<void>;
+    /**
+     * Expand item
+     *
+     * @param index
+     * @param direct expand directly without animation
+     * @returns return promise if animation is enabled
+     */
+    expand(index: number | number[], direct?: boolean): void | Promise<void>;
+    /**
+     * Refresh
+     *
+     * @param reset Expand the specified items with initial configuration
      */
     refresh(reset: boolean): void;
     /**

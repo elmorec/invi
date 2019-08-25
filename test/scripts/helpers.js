@@ -15,12 +15,12 @@ function runQueue(args, behavior, expectation, timeout = 100) {
         else setTimeout(() => {
           expectation(i);
           setTimeout(run, timeout);
-        }, 0);
+        }, 100);
       } else resolve();
     }
   });
 }
 
-function sleep(ms = 500) {
+function sleep(ms = 100) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }

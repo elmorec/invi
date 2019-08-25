@@ -53,8 +53,10 @@ interface CarouselConfig {
   delay?: number;
 }
 
+/** @ignore */
 interface CarouselElement { el: HTMLElement; index: number; };
 
+/** @ignore */
 const Events: { [type: string]: string | string[] } = {
   slide: 'slide',
   slideChange: 'slideChange',
@@ -69,6 +71,7 @@ const Events: { [type: string]: string | string[] } = {
     })
 };
 
+/** @ignore */
 let defaults: CarouselConfig = {
   selectors: {
     item: 'li',
@@ -352,7 +355,7 @@ export class Carousel extends EventEmitter {
 
     // emit ongoing event, pass current, next index
     setTimeout(() => {
-      this.emit(<string>Events.slide, current, itemNext);
+      this.emit<number, number>(<string>Events.slide, current, itemNext);
     }, 0);
 
     this.translate(to * this.step, speed);
@@ -396,8 +399,7 @@ export class Carousel extends EventEmitter {
   /**
    * Slide to item
    *
-   * @param index -
-   * @returns promise
+   * @param index
    */
   slide(index: number): Promise<boolean> {
     if (index < 0 || index > this.size - 1 || this.busy) return Promise.resolve(false);
@@ -411,8 +413,6 @@ export class Carousel extends EventEmitter {
 
   /**
    * Slide to next
-   *
-   * @returns promise
    */
   next(): Promise<boolean> {
     return this.move((this.size < 3 && this.current === this.size - 1) ? 0 : this.current + 1, this.config.speed);
@@ -420,8 +420,6 @@ export class Carousel extends EventEmitter {
 
   /**
   * Slide to previous
-  *
-  * @returns promise
   */
   prev(): Promise<boolean> {
     return this.move((this.size < 3 && this.current === 0) ? this.size - 1 : this.current - 1, this.config.speed);

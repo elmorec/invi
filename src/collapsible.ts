@@ -1,68 +1,99 @@
-import { bindOnce, delegate, EventEmitter, forEach, mergeDefaults, transitionend } from './utils';
+import { bindTransition, css, delegate, EventEmitter, forEach, mergeDefaults, pick, redraw, transitionend, xProperty } from './utils';
 
 interface CollapsibleStyle {
-  /**
-   * Class name which applied to the actived title
-   */
+  /** CSS class name of the title element when expanded */
   titleActive: string;
-  /**
-   * Class name which applied to the actived content
-   */
+  /** CSS class name of the content element when expanded */
   contentActive: string;
 };
 
 interface CollapsibleConfig {
   /**
-   * CSS selectors for quering title and content
+   * CSS selector for querying title and content elements
    */
   selectors?: {
+    /**
+     * Title element selector
+     *
+     * @default `header`
+     */
     title?: string;
+
+    /**
+     * Content element selector
+     *
+     * @default `article`
+     */
     content?: string;
   };
-  /**
-   * Class names
-   */
+
+  /** CSS class name */
   classes?: CollapsibleStyle;
+
   /**
-   * Event type
+   * The type of event that is bound on the title to trigger expand/collapse
+    *
+    * @default `click`
    */
   event?: string;
+
   /**
    * Accordion mode
+   *
+   * @default false
    */
+
   accordion?: boolean;
+
   /**
-   * Apply height change to DOM for animation propose
+   * Whether to use animation
+   *
+   * @default true
    */
-  animation?: boolean,
+  animation?: boolean;
+
   /**
-   *  Indexs of items which need to be expanded after initialization
+   * Animation duration in ms
+   *
+   * @default 300
    */
-  indexes?: number[];
+  duration?: number,
+
+  /**
+   * Items that need to be expanded after initialization,
+   * all are collapsed by default
+   */
+  index?: number | number[];
 };
 
-interface CollapsibleElement { title: HTMLElement; content: HTMLElement; contentHeight?: number; active?: boolean; busy: boolean; };
-
 interface CollapsibleSnapshot {
-  /**
-   * current collapsed/expanded title
-   */
+  /** Title element */
   title: HTMLElement;
-  /**
-   * current collapsed/expanded content
-   */
-  content: HTMLElement;
-  /**
-   * index
-   */
-  index: number;
-}
 
-const renderDelay = 24;
-const Events = {
+  /** Content element */
+  content: HTMLElement;
+
+  /** Index */
+  index: number;
+};
+
+/** @ignore */
+interface CollapsibleElement {
+  title: HTMLElement;
+  content: HTMLElement;
+  contentHeight?: number;
+  expanded?: boolean;
+  busy: boolean;
+  index: number;
+};
+
+/** @ignore */
+const EVENTS = {
   expand: 'expand',
   collapse: 'collapse'
 }
+
+/** @ignore */
 let defaults: CollapsibleConfig = {
   selectors: {
     title: 'header',
@@ -70,13 +101,13 @@ let defaults: CollapsibleConfig = {
   },
   classes: {} as CollapsibleStyle,
   event: 'click',
-  indexes: [-1],
   accordion: false,
-  animation: true
+  animation: true,
+  duration: 300
 }
 
 /**
- * Collapsible
+ * ## Collapsible
  *
  * ### Example
  *
@@ -98,25 +129,18 @@ let defaults: CollapsibleConfig = {
  * ```
  *
  * ```javascript
- * const collapsible = new Collapsible(document.getElementById('collapse'), {
- *   selectors: {
- *     title: 'header', // by default
- *     content: 'article' // by default
- *   },
- *   event: 'click', // by default
- *   useHeight: true, // by default
- *   classes: { active: 'active' },
- *   accordion: true,
- *   indexes: [1],
- * });
- * collapsible.on('collapse', (title, content, index) => {});
- * collapsible.on('expand', (title, content, index) => {});
+ * const collapsible = new Collapsible(
+ *   document.getElementById('collapse')
+ * );
+ *
+ * collapsible.on('collapse', ({title, content, index}) => {});
+ * collapsible.on('expand', ({title, content, index}) => {});
  * ```
  */
 export class Collapsible extends EventEmitter {
-  host: HTMLElement;
-  private config: CollapsibleConfig;
-  private items: Array<CollapsibleElement> = [];
+  private _config: CollapsibleConfig;
+  private _items: Array<CollapsibleElement> = [];
+  private _removeDelegate: any;
 
   /**
    * Modify the default configuration
@@ -124,184 +148,217 @@ export class Collapsible extends EventEmitter {
   static config(config: CollapsibleConfig, pure?: boolean): CollapsibleConfig {
     const ret = mergeDefaults(defaults, config) as CollapsibleConfig;
 
+    if (!Array.isArray(ret.index)) ret.index = [ret.index];
+    ret.index = ret.index.filter(i => typeof i === 'number');
     if (!transitionend) ret.animation = false;
+    if (!(ret.duration > 1)) ret.duration = defaults.duration;
 
     if (pure) return ret;
     else defaults = ret;
   }
 
   /**
-   * Cconstructor
-   *
-   * @param element -
-   * @param config - CollapsibleConfig
+   * @param host container element
+   * @param config
    */
-  constructor(element: HTMLElement, config: CollapsibleConfig = {}) {
+  constructor(public host: HTMLElement, config?: CollapsibleConfig) {
     super();
-    this.config = Collapsible.config(config, true);
-    this.host = element;
+    this._config = Collapsible.config(config || {}, true);
 
     this.refresh(true);
 
-    delegate.bind(element)(this.config.event, this.config.selectors.title, (target: HTMLElement) => {
-      this.toggle(this.items.map(i => i.title).indexOf(target));
+    this._removeDelegate = delegate.bind(this.host)(this._config.event, this._config.selectors.title, (target: HTMLElement) => {
+      const index = this._items.map(i => i.title).indexOf(target);
+      const item = this._items[index];
+
+      if (item && !item.busy) {
+        if (this._config.accordion) this.collapse(this._items.filter(i => i !== item).map(i => i.index))
+        this.toggle(index);
+      };
     });
   }
 
   /**
-   * Toggle display the specified item
-   *
-   * @param index -
-   * @returns promise
-   */
-  toggle(index: number): Promise<CollapsibleSnapshot> {
-    const item = this.items[index];
-
-    if (!item) return Promise.reject();
-    return this[item.active ? 'collapse' : 'expand'](index) as any;
-  }
-
-  /**
-   * Collapse the specified item
-   *
-   * @param index -
-   * @param directly - collapse directly without animation (synchronize the operation)
-   * @returns return a promise if directly is negative
-   */
-  collapse(index: number, directly?: boolean): Promise<CollapsibleSnapshot> | void {
-    const item = this.items[index];
-    const classes = this.config.classes;
-
-    if (!item) return Promise.reject();
-    if (!item.active || item.busy) return Promise.resolve({ title: item.title, content: item.content, index: index });
-
-    item.active = false;
-    classes.titleActive && item.title.classList.remove(classes.titleActive);
-    classes.contentActive && item.content.classList.remove(classes.contentActive);
-
-    if (directly) {
-      item.content.style.display = 'none';
-      return;
-    }
-
-    item.busy = true;
-
-    return new Promise(resolve => {
-      if (this.config.animation) {
-        item.content.style.maxHeight = item.contentHeight + 'px';
-        setTimeout(() => {
-          item.content.style.maxHeight = item.content.style.paddingTop = item.content.style.paddingBottom = '0';
-        }, renderDelay);
-        bindOnce(item.content, transitionend, () => {
-          // reset
-          item.content.style.display = 'none';
-          item.content.style.maxHeight = item.content.style.paddingTop = item.content.style.paddingBottom = '';
-          // safer resolve
-          setTimeout(resolve, renderDelay);
-        });
-      } else {
-        item.content.style.display = 'none';
-        resolve();
-      }
-    }).then(() => {
-      item.busy = false;
-      this.emit(Events.collapse, item.content, index);
-
-      return { title: item.title, content: item.content, index: index };
-    });
-  }
-
-  /**
-   * Expand the specified item
+   * Toggle item
    *
    * @param index
-   * @param directly - expand directly without animation (synchronize the operation)
-   * @returns return a promise if directly is negative
+   * @param direct toggle directly without transition
+   * @returns return promise if animation is enabled
    */
-  expand(index: number, directly?: boolean): Promise<CollapsibleSnapshot> | void {
-    const item = this.items[index];
-    const classes = this.config.classes;
+  toggle(index: number | number[], direct?: boolean): void | Promise<void> {
+    const indexes = index = Array.isArray(index) ? index : [index];
+    const items = this._items.filter((item, i) =>
+      ~indexes.indexOf(i) &&
+      !item.busy
+    );
+    const classes = this._config.classes;
 
-    if (!item) return Promise.reject();
-    if (item.active || item.busy) return Promise.resolve({ title: item.title, content: item.content, index: index });
+    if (!items.length) return;
 
-    item.active = true;
-    classes.titleActive && item.title.classList.add(classes.titleActive);
-    classes.contentActive && item.content.classList.add(classes.contentActive);
+    if (!this._config.animation || direct) {
+      items.forEach(item => {
+        const expanded = !item.expanded;
+        item.expanded = expanded;
+        classes.titleActive && item.title.classList[expanded ? 'add' : 'remove'](classes.titleActive);
+        classes.contentActive && item.content.classList[expanded ? 'add' : 'remove'](classes.contentActive);
 
-    if (directly) {
-      item.content.style.display = '';
-      if (this.config.accordion) {
-        this.items.forEach((_, i) => index !== i && this.collapse(i, true));
-      }
+        item.content.style.display = expanded ? '' : 'none';
+        redraw(item.content);
+
+        this.emit<CollapsibleSnapshot>(
+          expanded ? EVENTS.expand : EVENTS.collapse,
+          pick(item, ['content', 'title', 'index'])
+        );
+      });
+
       return;
     }
 
-    item.busy = true;
+    return new Promise(resolve => {
+      let count = items.length;
+      items.forEach(item => {
+        const expanded = !item.expanded;
+        const maxHeight = item.contentHeight + 'px'
 
-    return Promise.all([
-      new Promise<void>(resolve => {
-        if (this.config.animation) {
-          // trigger transition
-          item.content.style.maxHeight = item.content.style.paddingTop = item.content.style.paddingBottom = '0';
-          item.content.style.display = '';
-          setTimeout(() => {
-            item.content.style.maxHeight = item.contentHeight + 'px';
-            item.content.style.paddingTop = item.content.style.paddingBottom = '';
-          }, renderDelay);
-          bindOnce(item.content, transitionend, () => {
-            // reset
-            item.content.style.maxHeight = item.content.style.paddingTop = item.content.style.paddingBottom = '';
-            // safer resolve
-            setTimeout(resolve, renderDelay);
-          });
+        item.expanded = expanded;
+        item.busy = true;
+
+        if (expanded) {
+          css(item.content, {
+            display: '',
+            maxHeight: 0,
+            paddingTop: 0,
+            paddingBottom: 0
+          } as any);
+          redraw(item.content);
+          css(item.content, {
+            maxHeight,
+            paddingTop: '',
+            paddingBottom: ''
+          } as any);
         } else {
-          item.content.style.display = '';
-          resolve();
+          css(item.content, {
+            maxHeight
+          } as any);
+          redraw(item.content);
+          css(item.content, {
+            maxHeight: 0,
+            paddingTop: 0,
+            paddingBottom: 0
+          } as any);
         }
-      }).then(() => {
-        item.busy = false;
-        this.emit(Events.expand, item.content, index);
-      })
-    ].concat(this.config.accordion ? this.items.map((_, i) => index !== i ? this.collapse(i) as any : undefined) : undefined))
-      .then(() => ({ title: item.title, content: item.content, index: index }));
+        css(item.content, {
+          [xProperty('transitionDuration')]: this._config.duration + 'ms',
+          [xProperty('transitionProperty')]: 'max-height,padding-top,padding-bottom',
+        } as any);
+
+        bindTransition(item.content, 'max-height', () => {
+          // reset
+          css(item.content, {
+            maxHeight: '',
+            paddingTop: '',
+            paddingBottom: '',
+            [xProperty('transitionDuration')]: '',
+            [xProperty('transitionProperty')]: '',
+          } as any);
+
+          if (!expanded) {
+            item.content.style.display = 'none';
+            redraw(item.content);
+          }
+
+          if (count === 1) resolve();
+          else if (--count < 1) resolve();
+
+          item.busy = false;
+          this.emit<CollapsibleSnapshot>(
+            expanded ? EVENTS.expand : EVENTS.collapse,
+            pick(item, ['content', 'title', 'index'])
+          );
+        });
+      });
+    })
   }
 
   /**
-   * Refresh list
+   * Collapse item
    *
-   * @param reset - rest status using initial configuration
-   * @returns promise
+   * @param index
+   * @param direct collapse directly without animation
+   * @returns return promise if animation is enabled
    */
-  refresh(reset: boolean): void {
-    const titles = this.host.querySelectorAll(this.config.selectors.title);
-    const contents = this.host.querySelectorAll(this.config.selectors.content);
+  collapse(index: number | number[], direct?: boolean): void | Promise<void> {
+    const indexes = Array.isArray(index) ? index : [index];
+
+    return this.toggle(
+      this._items
+        .filter((item, i) => ~indexes.indexOf(i) && item.expanded)
+        .map(i => i.index),
+      direct);
+  }
+
+  /**
+   * Expand item
+   *
+   * @param index
+   * @param direct expand directly without animation
+   * @returns return promise if animation is enabled
+   */
+  expand(index: number | number[], direct?: boolean): void | Promise<void> {
+    const indexes = Array.isArray(index) ? index : [index];
+
+    return this.toggle(
+      this._items
+        .filter((item, i) => ~indexes.indexOf(i) && !item.expanded)
+        .map(i => i.index),
+      direct);
+  }
+
+  /**
+   * Refresh
+   *
+   * @param reset Expand the specified items with initial configuration
+   */
+  refresh(reset: boolean) {
+    const titles = this.host.querySelectorAll(this._config.selectors.title);
+    const contents = this.host.querySelectorAll(this._config.selectors.content);
     const items: CollapsibleElement[] = [];
+    const initIndex: number[] = reset ? <number[]>this._config.index : this._items.filter(i => i.expanded).map(i => i.index);
+    let index = 0;
 
     forEach(titles, (title, i) => {
       const content = contents[i] as HTMLElement;
 
       if (!content) return;
 
-      const t = { title, content, active: true, busy: false } as CollapsibleElement;
+      const t = {
+        index: index++,
+        title,
+        content,
+        expanded: true,
+        busy: false,
+      } as CollapsibleElement;
 
-      if (this.config.animation)
+      if (this._config.animation)
         t.contentHeight = content.offsetHeight;
 
       items.push(t);
-    })
+    });
 
-    this.items = items;
+    this._items = items;
 
-    if (reset)
-      items.map((_, i: number) => this[~this.config.indexes.indexOf(i) ? 'expand' : 'collapse'](i, true));
+    if (reset) {
+      const collapseIndexes = items.filter(i => !~initIndex.indexOf(i.index)).map(i => i.index);
+      return this.toggle(collapseIndexes, true) as void;
+    }
   }
 
   /**
    * Destroy instance, remove all listeners
    */
   destroy() {
+    this._removeDelegate();
     this.removeAllListeners();
-    this.host = this.items = this.config = null;
+    this.host = this._items = this._config = null;
   }
 }

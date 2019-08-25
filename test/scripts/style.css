@@ -40,7 +40,6 @@ collapsible > div {
 }
 collapsible article {
   padding: 10pxm;
-  transition: max-height .5s, padding .5s;
 }
 
 /* modal */

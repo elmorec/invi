@@ -1,21 +1,18 @@
 /**
  * Get target type
  * If target is an element, return `element`
- *
- * @param o
- * @returns
  */
 export function type(o: any): string {
-  const t = Object.prototype.toString.call(o).split(' ')[1].slice(0, -1).toLowerCase();
+  const t = ({}).toString.call(o).split(' ')[1].slice(0, -1).toLowerCase();
   return t.match(/element$/) ? 'element' : t;
 }
 
 export function forEach<T>(list: ArrayLike<T>, fn: (item: T, index: number) => void): Array<T> {
-  return Array.prototype.forEach.call(list, fn)
+  return [].forEach.call(list, fn)
 }
 
 export function map<T, K>(list: ArrayLike<T>, fn: (item: T, index: number) => K): Array<K> {
-  return Array.prototype.map.call(list, fn)
+  return [].map.call(list, fn)
 }
 
 /**
@@ -30,8 +27,6 @@ export function map<T, K>(list: ArrayLike<T>, fn: (item: T, index: number) => K)
  * mergeDefaults({a:1 }, {a: 'a'})
  * // {a:1}
  * ```
- * @param defaults
- * @param o
  */
 export function mergeDefaults(defaults: any, o: any) {
   const ret = { ...defaults };
@@ -55,4 +50,18 @@ export function upperFirst(str: string): string {
 
 export function kebabCase(str: string): string {
   return str.replace(/[A-Z]/g, a => '-' + a.toLowerCase())
+}
+
+export function redraw(element: HTMLElement): void {
+  element.offsetHeight < 0 && alert();
+}
+
+export function pick<T, K extends keyof T>(o: T, keys: K[]): Pick<T, K> {
+  const ret = {} as T;
+
+  keys.forEach(k => {
+    if (o[k] !== undefined) ret[k] = o[k];
+  });
+
+  return ret;
 }

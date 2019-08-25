@@ -1,29 +1,4 @@
-class EventEmitter {
-    private events;
-    /**
-     * Register an event handler for the given type.
-     *
-     * @param type - Type of event to listen for, or `"*"` for all events
-     * @param handler - Function to call in response to given event
-     */
-    on(type: string, handler: (event?: any) => void): void;
-    /**
-     * Remove an event handler for the given type.
-     *
-     * @param type - Type of event to unregister `handler` from, or `"*"`
-     * @param handler - Handler function to remove
-     */
-    off(type: string, handler: (event?: any) => void): void;
-    removeAllListeners(): void;
-    /**
-     * Invoke all handlers for the given type.
-     * If present, `"*"` handlers are invoked after type-matched handlers.
-     *
-     * @param type - The event type to invoke
-     * @param evt - Any value (object is recommended and powerful), passed to each handler
-     */
-    emit(type: string, ...evt: any[]): void;
-}
+import { EventEmitter } from './utils';
 interface ModalAction {
     /**
      * Type of the action(anchor) button
@@ -40,7 +15,7 @@ interface ModalAction {
     /**
      * `href` attribute
      */
-    redirect?: string;
+    href?: string;
     /**
      * `target` attribute
      */
@@ -89,9 +64,6 @@ interface ModalConfig {
      * Close modal when clicking on backdrop
      */
     autoclose?: boolean;
-    /**
-     * Class names
-     */
     classes?: ModalStyle;
     /**
      * Event type
@@ -120,7 +92,7 @@ interface ModalElements {
     footer?: HTMLElement;
 }
 /**
- * Modal
+ * ## Modal
  *
  * ### Example
  *
@@ -140,7 +112,7 @@ interface ModalElements {
  *     { type: 'cancel', label: 'cancel' },
  *     { type: 'confirm', label: 'ok' },
  *     {
- *       label: 'search it',
+ *       label: 'search',
  *       redirect: 'https://www.google.com/search?q=',
  *       target: '_blank',
  *     },

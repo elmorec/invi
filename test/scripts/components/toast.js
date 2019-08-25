@@ -4,12 +4,17 @@ describe('toast', function () {
 
   beforeEach(function () {
     const id = `toast-${++uid}`;
+
     toast.config({
       content: id,
       classes: { host: id }
     });
 
     this.id = id;
+    this.startAt = Date.now()
+    this.duration = function() {
+      return ~~((Date.now() - this.startAt) / 100) * 100
+    }
   });
 
   it('accept html', function () {
@@ -18,9 +23,8 @@ describe('toast', function () {
   });
 
   it('duration', async function () {
-    const ts = Date.now();
     await toast({ duration: 500 });
-    expect((Date.now() - ts) / 100).toBeCloseTo(5, 0);
+    expect(this.duration()).toBeCloseTo(500);
   });
 
   it('host', function () {
@@ -31,36 +35,28 @@ describe('toast', function () {
   });
 
   it('animation:false', async function () {
-    const ts = Date.now();
     const t = toast({ classes: { enter: 'enter', leave: 'leave' }, duration: 500, animation: false });
     expect($('.' + this.id)[0]).toBeDefined();
     await t;
-    expect((Date.now() - ts) / 100).toBeCloseTo(5, 0);
+    expect(this.duration()).toBeCloseTo(500);
     expect($('.' + this.id)[0]).not.toBeDefined();
   });
 
-  it('animation:true', async function () {
-    let ts = Date.now();
-    await toast({ classes: { enter: 'enter' }, duration: 500 }).then(() => {
-      expect((Date.now() - ts) / 100).toBeCloseTo(10, 0);
-      expect($('.' + this.id)[0]).not.toBeDefined();
-    });
+  it('animation:true enter', async function () {
+    await toast({ classes: { enter: 'enter' }, duration: 500 })
+    expect(this.duration()).toBeCloseTo(1000);
+    expect($('.' + this.id)[0]).not.toBeDefined();
   });
 
-  it('animation:true', async function () {
-    let ts = Date.now();
-    ts = Date.now();
-    await toast({ classes: { leave: 'leave' }, duration: 500 }).then(() => {
-      expect((Date.now() - ts) / 100).toBeCloseTo(10, 0);
-      expect($('.' + this.id)[0]).not.toBeDefined();
-    });
+  it('animation:true leave', async function () {
+    await toast({ classes: { leave: 'leave' }, duration: 500 })
+    expect(this.duration()).toBeCloseTo(1000);
+    expect($('.' + this.id)[0]).not.toBeDefined();
   });
 
-  it('animation:true', async function () {
-    let ts = Date.now();
-    await toast({ classes: { enter: 'enter', leave: 'leave' }, duration: 500 }).then(() => {
-      expect((Date.now() - ts) / 100).toBeCloseTo(15, 0);
-      expect($('.' + this.id)[0]).not.toBeDefined();
-    });
+  it('animation:true enter/leave', async function () {
+    await toast({ classes: { enter: 'enter', leave: 'leave' }, duration: 500 })
+    expect(this.duration()).toBeCloseTo(1500);
+    expect($('.' + this.id)[0]).not.toBeDefined();
   });
 });

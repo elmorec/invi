@@ -1,6 +1,7 @@
+import { execSync } from 'child_process';
+import fs from 'fs-extra';
 import typescript from 'rollup-plugin-typescript';
 import { uglify } from "rollup-plugin-uglify";
-import fs from 'fs-extra';
 import pkg from './package.json';
 
 const task = process.env.npm_lifecycle_event;
@@ -24,14 +25,26 @@ const config = {
 };
 
 fs.removeSync('./dist');
+execSync('npx tsc', { cwd: process.cwd() })
+emptyDirWithExclude('./dist/utils', ['event_emitter.d.ts'])
 
 export default Object.keys(entries).map(name => ({
   input: entries[name] + '.ts',
   output: {
     name: moduleName,
     file: `dist/${name}.js`,
-    format: 'umd'
+    format: 'umd',
+    sourcemap: isDev,
   },
-  sourceMap: isDev,
   ...config
 }));
+
+function emptyDirWithExclude(dir, exclude) {
+  exclude.forEach(p => {
+    fs.moveSync(dir + '/' + p, './tmp/' + p)
+  })
+  fs.emptyDirSync(dir)
+  exclude.forEach(p => {
+    fs.moveSync('./tmp/' + p, dir + '/' + p)
+  })
+}

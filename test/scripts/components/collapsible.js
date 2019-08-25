@@ -1,4 +1,4 @@
-describe('collapsible', function () {
+describe('Collapsible', function () {
   const { Collapsible } = Invi;
   const createDOM = () => {
     return $(`
@@ -21,103 +21,98 @@ describe('collapsible', function () {
 
   beforeEach(function () {
     const id = `collapsible-${++uid}`;
+    Collapsible.config({ classes: { titleActive: id, contentActive: id }, animation: false });
+
     this.id = id;
-    Collapsible.config({ classes: { titleActive: this.id, contentActive: this.id }, animation: false, indexes: [-1] });
   });
 
-  it('active', async function () {
+  it('should be able to toggle active class', async function () {
     const id = this.id;
     const collapsible = new Collapsible(createDOM());
 
-    await runQueue([0, 1, 2], i => collapsible.items[i].title.click(), function (i) {
-      expect(collapsible.items[i].title.classList.contains(id)).toBeTruthy();
-      expect(collapsible.items[i].content.classList.contains(id)).toBeTruthy();
-      expect(collapsible.items[i].content.style.display).toBe('');
+    await runQueue([0, 1, 2], i => collapsible._items[i].title.click(), function (i) {
+      expect(collapsible._items[i].title.classList.contains(id)).toBeTruthy();
+      expect(collapsible._items[i].content.classList.contains(id)).toBeTruthy();
+      expect(collapsible._items[i].content.style.display).toBe('');
     });
-    await runQueue([0, 1, 2], i => collapsible.items[i].title.click(), function (i) {
-      expect(collapsible.items[i].title.classList.contains(id)).not.toBeTruthy();
-      expect(collapsible.items[i].content.classList.contains(id)).not.toBeTruthy();
-      expect(collapsible.items[i].content.style.display).toBe('none');
+    await runQueue([0, 1, 2], i => collapsible._items[i].title.click(), function (i) {
+      expect(collapsible._items[i].title.classList.contains(id)).not.toBeTruthy();
+      expect(collapsible._items[i].content.classList.contains(id)).not.toBeTruthy();
+      expect(collapsible._items[i].content.style.display).toBe('none');
     });
   });
 
-  it('index', function () {
-    const collapsible = new Collapsible(createDOM(), { animation: false, indexes: [1, 2] });
+  it('should be able to expand the specific items duration initialization', function () {
+    const collapsible = new Collapsible(createDOM(), { animation: false, index: [1, 2] });
 
-    expect(collapsible.items[0].content.style.display).toBe('none');
-    expect(collapsible.items[1].content.style.display).toBe('');
-    expect(collapsible.items[2].content.style.display).toBe('');
+    expect(collapsible._items[0].content.style.display).toBe('none');
+    expect(collapsible._items[1].content.style.display).toBe('');
+    expect(collapsible._items[2].content.style.display).toBe('');
   });
 
-  it('event', function (done) {
+  it('should be able to change the default event type', function (done) {
     const collapsible = new Collapsible(createDOM(), { event: 'touchstart' });
-    $(collapsible.items[0].title).trigger('touchstart');
+
+    $(collapsible._items[0].title).trigger('touchstart');
     setTimeout(() => {
-      expect(collapsible.items[0].content.style.display).toBe('');
+      expect(collapsible._items[0].content.style.display).toBe('');
       done();
     }, 0);
   });
 
-  it('emit', function (done) {
+  it('should be able to emit event properly', function (done) {
     const collapsible = new Collapsible(createDOM());
     let count = 0;
 
-    collapsible.items[0].title.click();
-    collapsible.on('expand', (content, i) => {
+    collapsible.on('expand', ({ content, title, index }) => {
       count++;
-      expect(i).toBe(0);
-      expect(content).toEqual(collapsible.items[i].content);
-      expect(collapsible.items[i].content.style.display).toBe('');
+      expect(index).toBe(0);
+      expect(collapsible._items[index].content.style.display).toBe('');
 
-      collapsible.items[0].title.click();
+      setTimeout(() => title.click());
     });
-    collapsible.on('collapse', (content, i) => {
+    collapsible.on('collapse', ({ content, index }) => {
       count++;
-      expect(content).toEqual(collapsible.items[i].content);
-      expect(collapsible.items[i].content.style.display).toBe('none');
+      expect(index).toBe(0);
+      expect(collapsible._items[index].content.style.display).toBe('none');
 
       expect(count).toBe(2);
       done();
     });
+    collapsible._items[0].title.click();
   });
 
-  it('accordion', async function () {
+  it('should be able use accordion mode', async function () {
     const id = this.id;
     const collapsible = new Collapsible(createDOM(), { accordion: true });
 
-    await runQueue([0, 1, 2], i => collapsible.items[i].title.click(), function (i) {
+    await runQueue([0, 1, 2], i => collapsible._items[i].title.click(), function (i) {
       const idxs = [0, 1, 2];
-      expect(collapsible.items[i].content.style.display).toBe('');
+      expect(collapsible._items[i].content.style.display).toBe('');
       idxs.splice(idxs.indexOf(i), 1);
       idxs.forEach(i => {
-        expect(collapsible.items[i].content.style.display).toBe('none');
+        expect(collapsible._items[i].content.style.display).toBe('none');
       });
     });
-    await runQueue([2], i => collapsible.items[i].title.click(), function (i) {
+    await runQueue([2], i => collapsible._items[i].title.click(), function (i) {
       [0, 1, 2].forEach(i => {
-        expect(collapsible.items[i].content.style.display).toBe('none');
+        expect(collapsible._items[i].content.style.display).toBe('none');
       });
     });
   });
 
-  it('animation (transition)', async function () {
+  it('should be able to use animation', async function () {
     const id = this.id;
-    const collapsible = new Collapsible(createDOM(), { accordion: true, animation: true });
+    const collapsible = new Collapsible(createDOM(), { accordion: true, duration: 500, animation: true });
 
-    await sleep(500);
+    await collapsible.expand(1)
+    expect(collapsible._items[1].expanded).toBe(true);
 
-    await collapsible.expand(1).then(o => {
-      expect(o.title).toEqual(collapsible.items[1].title);
-      expect(o.index).toBe(1);
-    });
-
-    await collapsible.collapse(1).then(o => {
-      expect(o.title).toEqual(collapsible.items[1].title);
-      expect(o.index).toBe(1);
-    });
+    await collapsible.collapse(1)
+    expect(collapsible._items[1].expanded).toBeFalsy();
   });
 
-  it('custom dom structure', function () {
+  it('should be able to change selectors', function () {
     const id = this.id;
     const collapsible = new Collapsible($(`
       <collapsible>
@@ -135,10 +130,10 @@ describe('collapsible', function () {
         }
       });
 
-    return runQueue([0, 1, 2], i => collapsible.items[i].title.click(), function (i) {
-      expect(collapsible.items[i].title.classList.contains(id)).toBeTruthy();
-      expect(collapsible.items[i].content.classList.contains(id)).toBeTruthy();
-      expect(collapsible.items[i].content.style.display).toBe('');
+    return runQueue([0, 1, 2], i => collapsible._items[i].title.click(), function (i) {
+      expect(collapsible._items[i].title.classList.contains(id)).toBeTruthy();
+      expect(collapsible._items[i].content.classList.contains(id)).toBeTruthy();
+      expect(collapsible._items[i].content.style.display).toBe('');
     });
   });
 });

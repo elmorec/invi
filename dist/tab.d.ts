@@ -1,76 +1,41 @@
-class EventEmitter {
-    private events;
-    /**
-     * Register an event handler for the given type.
-     *
-     * @param type - Type of event to listen for, or `"*"` for all events
-     * @param handler - Function to call in response to given event
-     */
-    on(type: string, handler: (event?: any) => void): void;
-    /**
-     * Remove an event handler for the given type.
-     *
-     * @param type - Type of event to unregister `handler` from, or `"*"`
-     * @param handler - Handler function to remove
-     */
-    off(type: string, handler: (event?: any) => void): void;
-    removeAllListeners(): void;
-    /**
-     * Invoke all handlers for the given type.
-     * If present, `"*"` handlers are invoked after type-matched handlers.
-     *
-     * @param type - The event type to invoke
-     * @param evt - Any value (object is recommended and powerful), passed to each handler
-     */
-    emit(type: string, ...evt: any[]): void;
-}
+import { EventEmitter } from './utils';
 interface TabStyle {
-    /**
-     * Class name which applied to current tab
-     */
+    /** CSS class name of current tab */
     active?: string;
 }
 interface TabConfig {
     /**
-     * CSS selectors for quering tab and content
+     * CSS selectors for quering tab and content elements
      */
     selectors?: {
+        /**
+         * Tab element selector
+         *
+         * @default `a`
+         */
         tab?: string;
+        /**
+         * Content element selector
+         *
+         * @default `article`
+         */
         content?: string;
     };
     /**
-     *  Index of tab which need to be actived after initialization
+     *  Index of tab need to be actived after initialization
      */
     index?: number;
-    /**
-     * Class names
-     */
+    /** CSS class name */
     classes?: TabStyle;
     /**
-     * Event type
+     * The type of event that is bound on the tab to trigger switch
+      *
+      * @default `click`
      */
     event?: string;
 }
-interface ActivatedTabSnapshot {
-    /**
-     * current actived tab
-     */
-    tab: HTMLElement;
-    /**
-     * current actived content
-     */
-    content: HTMLElement;
-    /**
-     * current index
-     */
-    current: number;
-    /**
-     * previous index
-     */
-    previous: number;
-}
 /**
- * Tab
+ * ## Tab
  *
  * ### Example
  *
@@ -88,55 +53,41 @@ interface ActivatedTabSnapshot {
  * ```
  *
  * ```javascript
- * const tab = new Tab(document.getElementById('tab'), {
- *   classes: { active: 'active' },
- *   selectors: {
- *     tab: 'a', // by default
- *     content: 'article' // by default
- *   },
- *   event: 'click' // by default,
- *   index: 1,
- * });
+ * const tab = new Tab(document.getElementById('tab'));
  *
- * tab.on('switch', (
- *   tabElement, // current tab
- *   contentElement, // current content
- *   current, // current index
- *   previous // previous index
- * ) => {})
+ * tab.on('switch', ({title, content, current, previous}) => {})
  * ```
  */
 export declare class Tab extends EventEmitter {
     host: HTMLElement;
-    private config;
-    private current;
-    private tabs;
-    private contents;
+    private _config;
+    private _current;
+    private _tabs;
+    private _contents;
+    private _removeDelegate;
     /**
      * Modify the default configuration
      */
     static config(config: TabConfig, pure?: boolean): TabConfig;
     /**
-     * Cconstructor
+     * @param host container element
+     * @param config
+     */
+    constructor(host: HTMLElement, config?: TabConfig);
+    /**
+     * Switch to a specified index
      *
-     * @param element -
-     * @param config - TabConfig
+     * @param index
      */
-    constructor(element: HTMLElement, config?: TabConfig);
+    switch(index: number): void;
     /**
-     * Switch to the specified tab
+     * Refresh tab list, and switch to a specified index
      *
-     * @param index -
-     * @param force -
-     * @returns return a promise if force is negative
+     * @param index
      */
-    switch(index: number, force?: boolean): Promise<ActivatedTabSnapshot> | void;
+    refresh(index: number): void;
     /**
-     * Refresh tab list
-     */
-    refresh(): void;
-    /**
-     * Destroy instance, remove all listeners
+     * Destroy tab instance, remove all listeners
      */
     destroy(): void;
 }

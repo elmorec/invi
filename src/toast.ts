@@ -6,11 +6,11 @@ interface ToastStyle {
    */
   host: string;
   /**
-   * Class name applied to container when it is attached to DOM
+   * Class name applied to container when being attached to DOM
    */
   enter: string;
   /**
-   * Class name applied to container when it is detached from DOM
+   * Class name applied to container when being detached from DOM
    */
   leave: string;
 };
@@ -22,18 +22,22 @@ interface ToastConfig {
   content?: string;
   /**
    * Apply animation, require `classes.enter` and `classes.leave`
+   * @default true
    */
   animation?: boolean;
   /**
    * Toast duration
+   * @default 1000
    */
   duration?: number;
   /**
    * Uses `innerHTML` to apply content instead of `innerText`
+   * @default false
    */
   unsafe?: boolean;
   /**
    * Mount element
+   * @default document.body
    */
   host?: HTMLElement;
   /**
@@ -42,18 +46,7 @@ interface ToastConfig {
   classes?: ToastStyle;
 };
 
-interface Toast {
-  /**
-   * Modify the default configuration
-   */
-  config(config: ToastConfig): void;
-
-  /**
-   * Create a toast and display it
-   */
-  (arg: ToastConfig | string): Promise<void>;
-}
-
+/** @ignore */
 let defaults: ToastConfig = {
   content: '',
   animation: true,
@@ -63,7 +56,7 @@ let defaults: ToastConfig = {
 };
 
 /**
- * Toast
+ * ## Toast
  *
  * ### Example
  *
@@ -84,31 +77,42 @@ let defaults: ToastConfig = {
  *
  * ```javascript
  * toast('content').then(() => {});
+ * toast('content', {}).then(() => {});
+ * toast({content: 'content'}).then(() => {});
  * ```
  *
- * Custom configuration
+ * Full configuration
  *
  * ```javascript
  * toast({
- *   content: 'content';
- *   animation: true; // by default
- *   duration: 1000; // by default
- *   backdrop: false; // by default
- *   unsafe: false; // by default
- *   center: false; // by default
- *   host: document.body; // by default
+ *   content: 'content',
+ *   animation: true,
+ *   duration: 1000,
+ *   backdrop: false,
+ *   unsafe: false,
+ *   center: false,
+ *   host: document.body,
  * });
  * ```
  */
-const toast = <Toast>function (config: ToastConfig = {}) {
-  return apply(mergeDefaults(defaults, type(config) === 'object' ? config : { content: String(config) }));
+export function toast(content: string | ToastConfig, config?: ToastConfig) {
+  if (typeof config !== 'object') {
+    config = {}
+  }
+  return apply(mergeDefaults(
+    defaults,
+    type(content) === 'object' ? content : Object.assign({ content }, config)
+  ));
 };
-
+/**
+ * Modify the default configuration
+ */
 toast.config = function config(config: ToastConfig) {
   defaults = mergeDefaults(defaults, config) as ToastConfig;
   if (!animationend) defaults.animation = false;
 };
 
+/** @ignore */
 function apply(config: ToastConfig): Promise<void> {
   let element = document.createElement('div');
   const classes = config.classes || {} as ToastStyle;
@@ -118,7 +122,7 @@ function apply(config: ToastConfig): Promise<void> {
 
   config.host.appendChild(element);
 
-  return new Promise<void>(resolve => {
+  return new Promise(resolve => {
     if (classes.enter && config.animation) {
       element.classList.add(classes.enter);
       bindOnce(element, animationend, () => {
@@ -148,5 +152,3 @@ function apply(config: ToastConfig): Promise<void> {
     }
   });
 }
-
-export { toast };

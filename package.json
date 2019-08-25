@@ -1,36 +1,38 @@
 {
   "name": "invi",
-  "version": "0.1.13",
+  "version": "0.1.15",
   "description": "A simple UI library which has no UI.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elmorec/invi.git"
+    "url": "git+https://github.com/ikeq/invi.git"
   },
   "keywords": [
     "ui",
     "javascript"
   ],
-  "browser": "./index.js",
+  "main": "./dist/index.js",
   "scripts": {
-    "test": "./node_modules/.bin/karma start ./test/karma.conf.js",
-    "start": "./node_modules/.bin/rollup -cw",
-    "build": "./node_modules/.bin/rollup -c"
+    "test": "karma start ./test/karma.conf.js",
+    "start": "rollup -cw",
+    "build": "rollup -c",
+    "docs": "typedoc --options typedoc.js && touch ./docs/.nojekyll"
   },
-  "author": "elmorec <elmore.c@outlook.com>",
+  "author": "ikeq <elmore.c@outlook.com>",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^10.12.10",
-    "clean-webpack-plugin": "^1.0.0",
-    "fs-extra": "^7.0.1",
-    "jasmine-core": "^3.3.0",
-    "karma": "^3.1.3",
+    "@types/node": "^12.0.7",
+    "clean-webpack-plugin": "^3.0.0",
+    "fs-extra": "^8.0.1",
+    "jasmine-core": "^3.4.0",
+    "karma": "^4.1.0",
     "karma-chrome-launcher": "^2.2.0",
     "karma-jasmine": "^2.0.1",
-    "rollup": "^0.68.2",
-    "rollup-plugin-typescript": "^1.0.0",
-    "rollup-plugin-uglify": "^6.0.0",
+    "rollup": "^1.14.3",
+    "rollup-plugin-typescript": "^1.0.1",
+    "rollup-plugin-uglify": "^6.0.2",
     "tslib": "^1.9.3",
-    "typescript": "^3.2.2",
+    "typedoc": "^0.14.2",
+    "typescript": "^3.5.1",
     "zepto": "^1.2.0"
   }
 }

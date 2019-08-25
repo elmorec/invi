@@ -4,7 +4,6 @@ describe('modal', function () {
 
   beforeEach(function () {
     const id = `modal-${++uid}`;
-    this.id = id;
 
     Modal.config({
       title: 'Modal ' + id,
@@ -16,6 +15,12 @@ describe('modal', function () {
         body: 'body',
       }
     });
+
+    this.id = id;
+    this.startAt = Date.now()
+    this.duration = function () {
+      return ~~((Date.now() - this.startAt) / 100) * 100
+    }
   });
 
   it('open', async function () {
@@ -49,7 +54,7 @@ describe('modal', function () {
     expect(modal.host.outerHTML).toBe(`<div class="${this.id}"><div class="backdrop"></div><div class="body"><header>${modal.config.title}</header><article>${this.id}</article></div></div>`);
   });
 
-  it('actions', async function (done) {
+  it('actions', async function () {
     const modal = new Modal({
       actions: [
         { type: 'close', label: 'close' },
@@ -57,7 +62,7 @@ describe('modal', function () {
         { type: 'confirm', label: 'ok' },
         {
           label: 'search it',
-          redirect: 'https://www.google.com/search?q=',
+          href: 'https://www.google.com/search?q=',
           target: '_blank',
         },
         {
@@ -86,10 +91,8 @@ describe('modal', function () {
 
     [0, 1, 2, 4].forEach(i => modal.el.footer.children[i].click());
 
-    setTimeout(() => {
-      expect(foo.types).toEqual(['cancel', 'confirm', 'noop']);
-      done();
-    }, 0)
+    await sleep(100)
+    expect(foo.types).toEqual(['cancel', 'confirm', 'noop']);
   });
 
   it('autoclose', async function () {
@@ -109,23 +112,32 @@ describe('modal', function () {
   });
 
   it('animation', async function () {
-    let ts = Date.now();
-    const modal1 = new Modal({
+    let modal = new Modal({
       classes: {
         enter: 'enter',
       }
     });
-    await modal1.open();
-    expect((Date.now() - ts) / 100).toBeCloseTo(5, 0);
 
-    ts = Date.now();
-    const modal2 = new Modal({
+    await new Promise(resolve => {
+      const promise = modal.open();
+      expect(modal.host.classList.contains('enter')).toBe(true)
+      resolve(promise)
+    })
+    expect(modal.host.classList.contains('enter')).toBe(false)
+
+    modal = new Modal({
       classes: {
         leave: 'leave',
       }
     });
-    await modal2.open();
-    await modal2.close();
-    expect((Date.now() - ts) / 100).toBeCloseTo(5, 0);
+
+    await modal.open();
+
+    await new Promise(resolve => {
+      const promise = modal.close();
+      expect(modal.host.classList.contains('leave')).toBe(true)
+      resolve(promise)
+    });
+    expect(modal.host.classList.contains('leave')).toBe(false)
   });
 });
